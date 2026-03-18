@@ -1,0 +1,163 @@
+// g++ main.c cJSON.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
+
+#include <GL/glut.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "cJSON.h"
+#include "bodies.h"
+
+float distance_scale;
+float radius_scale;
+float time_scale;
+
+int body_count = 0;
+Body *bodies = NULL;
+
+typedef struct {
+    float x, y, z;
+} Position;
+
+typedef struct {
+    Position lookFrom;
+    Position lookAt;
+    Position vUp;
+} Camera;
+
+Camera cam = {
+    {0.0f, 5.0f, 0.0f},
+    {0.0f, 0.0f, 0.0f},
+    {0.0f, 0.0f, -1.0f},
+};
+
+// openGL =====================
+
+void draw_sphere_lod(float radius, float x, float y, float z) {
+    float dx = cam.lookFrom.x - x;
+    float dy = cam.lookFrom.y - y;
+    float dz = cam.lookFrom.z - z;
+
+    float distance = sqrt(dx*dx + dy*dy + dz*dz);
+
+    int slices = (int)(1000 * radius / distance);
+
+    if (slices < 10) slices = 10;
+    if (slices > 100) slices = 100;
+
+    glutSolidSphere(radius, slices, slices);
+}
+
+void init(void)
+{
+   GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+   GLfloat mat_shininess[] = {50.0};
+   GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
+
+   glClearColor(0.0, 0.0, 0.0, 0.0);
+   glShadeModel(GL_SMOOTH);
+
+   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+   glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+   glEnable(GL_DEPTH_TEST);
+}
+
+void display(void)
+{
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+
+   // Câmera olhando de cima para baixo
+   gluLookAt(cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z,  
+             cam.lookAt.x, cam.lookAt.y, cam.lookAt.z,  
+             cam.vUp.x, cam.vUp.y, cam.vUp.z); 
+
+    glPushMatrix(); //sol
+        glTranslatef(0.0f, 0.0f, 0.0f);
+        Body sun = bodies[0];
+        draw_sphere_lod(sun.radius * radius_scale, 0.0f, 0.0f, 0.0f);
+
+
+        // Loop percorrendo todos os planetas carregados
+        for (int i = 1; i < body_count; i++)
+        {
+           glPushMatrix(); // Abre a matriz para este corpo celeste
+     
+           // 1. POSIÇÃO: Move a "caneta" para o lado. 
+           // Se você tiver a distância no JSON, troque a linha abaixo por algo como:
+           // glTranslatef(bodies[i].distance, 0.0f, 0.0f);
+           glTranslatef((i - (body_count / 2.0f)) * 3.0f, 0.0f, 0.0f); 
+     
+           // 2. TAMANHO: Desenha a esfera usando o raio real que veio do JSON
+           glutSolidSphere(bodies[i].radius * radius_scale, 50, 50);
+     
+           glPopMatrix(); // Fecha a matriz para o próximo planeta partir do centro novamente
+        }
+    glPopMatrix(); //sol
+   
+   glFlush();
+}
+
+void reshape(int w, int h)
+{
+   glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+   glMatrixMode(GL_PROJECTION);
+   glLoadIdentity();
+   
+   // Aumentamos o limite de visão para -15.0 a 15.0 para caber as body_count esferas
+   if (w <= h)
+      glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w,
+              15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
+   else
+      glOrtho(-15.0 * (GLfloat)w / (GLfloat)h,
+              15.0 * (GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
+              
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+}
+
+void keyboard(unsigned char key, int x, int y)
+{
+   switch (key)
+   {
+   case 27:
+      exit(0);
+      break;
+   }
+}
+
+int main(int argc, char **argv)
+{
+   bodies = load_bodies("configs.json", &body_count);
+
+   if (body_count == 0)
+   {
+      printf("Erro: Nenhum planeta lido do JSON");
+      exit(1);
+   }
+
+   for (int i = 0; i < body_count; i++)
+   {
+      printf("%s\n", bodies[i].name);
+   }
+
+   glutInit(&argc, argv);
+   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+   glutInitWindowSize(500, 500);
+   glutInitWindowPosition(100, 100);
+   glutCreateWindow(argv[0]);
+   init();
+   glutDisplayFunc(display);
+   glutReshapeFunc(reshape);
+   glutKeyboardFunc(keyboard);
+   glutMainLoop();
+
+   return 0;
+}

@@ -1,0 +1,263 @@
+{
+  "scale": {
+    "distance_scale": 1e-6,
+    "radius_scale": 1e-3,
+    "time_scale": 1000.0
+  },
+
+  "lighting": {
+    "ambient": [0.05, 0.05, 0.08, 1.0],
+    "shininess": 32.0
+  },
+
+  "bodies": [
+    {
+      "name": "Sun",
+      "type": "star",
+      "texture": "./textures/sun/sun.jpg",
+      "normal_texture": null,
+      "orbit_center": null,
+      "radius": 696340,
+      "orbit_radius": 0,
+      "eccentricity": 0,
+      "orbit_inclination": 0,
+      "axial_tilt": 7.25,
+      "orbital_period": 0,
+      "rotation_period": 609.12,
+      "material": {
+        "diffuse": [1.0, 0.9, 0.6, 1.0],
+        "specular": [1.0, 0.9, 0.7, 1.0]
+      }
+    },
+
+    {
+      "name": "Mercury",
+      "type": "planet",
+      "texture": "./textures/mercury/mercury.jpg",
+      "normal_texture": "./textures/mercury/mercury_normal.jpg",
+      "orbit_center": "Sun",
+      "radius": 2439.7,
+      "orbit_radius": 57910000,
+      "eccentricity": 0.205,
+      "orbit_inclination": 7.0,
+      "axial_tilt": 0.034,
+      "orbital_period": 88,
+      "rotation_period": 1407.6,
+      "material": {
+        "diffuse": [0.6, 0.6, 0.6, 1.0],
+        "specular": [0.3, 0.3, 0.3, 1.0]
+      }
+    },
+
+    {
+      "name": "Venus",
+      "type": "planet",
+      "texture": "./textures/venus/venus.jpg",
+      "secondary_texture": "./textures/venus/venus_atmosphere.jpg",
+      "normal_texture": null,
+      "orbit_center": "Sun",
+      "radius": 6051.8,
+      "orbit_radius": 108200000,
+      "eccentricity": 0.0067,
+      "orbit_inclination": 3.39,
+      "axial_tilt": 177.4,
+      "orbital_period": 225,
+      "rotation_period": -5832.5,
+      "material": {
+        "diffuse": [0.9, 0.8, 0.6, 1.0],
+        "specular": [0.2, 0.2, 0.2, 1.0]
+      }
+    },
+
+    {
+      "name": "Earth",
+      "type": "planet",
+      "texture": "./textures/earth/earth.jpg",
+      "secondary_texture": "./textures/earth/earth_clouds.jpg",
+      "normal_texture": "./textures/earth/earth_normal.jpg",
+      "orbit_center": "Sun",
+      "radius": 6371,
+      "orbit_radius": 149600000,
+      "eccentricity": 0.0167,
+      "orbit_inclination": 0.0,
+      "axial_tilt": 23.44,
+      "orbital_period": 365.25,
+      "rotation_period": 24,
+      "material": {
+        "diffuse": [0.2, 0.4, 1.0, 1.0],
+        "specular": [0.8, 0.8, 0.8, 1.0]
+      },
+      "moons": [
+        {
+          "name": "Moon",
+          "texture": "./textures/moon/moon.jpg",
+          "normal_texture": "./textures/moon/moon_normal.jpg",
+          "radius": 1737.4,
+          "orbit_radius": 384400,
+          "eccentricity": 0.0549,
+          "orbit_inclination": 5.14,
+          "axial_tilt": 6.68,
+          "orbital_period": 27.3,
+          "rotation_period": 655.7,
+          "material": {
+            "diffuse": [0.7, 0.7, 0.7, 1.0],
+            "specular": [0.1, 0.1, 0.1, 1.0]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Mars",
+      "type": "planet",
+      "texture": "./textures/mars/mars.jpg",
+      "normal_texture": "./textures/mars/mars_normal.jpg",
+      "orbit_center": "Sun",
+      "radius": 3389.5,
+      "orbit_radius": 227900000,
+      "eccentricity": 0.0934,
+      "orbit_inclination": 1.85,
+      "axial_tilt": 25.19,
+      "orbital_period": 687,
+      "rotation_period": 24.6,
+      "material": {
+        "diffuse": [0.8, 0.3, 0.2, 1.0],
+        "specular": [0.2, 0.1, 0.1, 1.0]
+      },
+      "moons": [
+        {
+          "name": "Phobos",
+          "texture": "./textures/moon/moon.jpg",
+          "normal_texture": "./textures/moon/moon_normal.jpg",
+          "radius": 11.3,
+          "orbit_radius": 9376,
+          "eccentricity": 0.0151,
+          "orbit_inclination": 1.1,
+          "axial_tilt": 0.0,
+          "orbital_period": 0.32,
+          "rotation_period": 0.32,
+          "material": {
+            "diffuse": [0.5, 0.5, 0.5, 1.0],
+            "specular": [0.05, 0.05, 0.05, 1.0]
+          }
+        },
+        {
+          "name": "Deimos",
+          "texture": "./textures/moon/moon.jpg",
+          "normal_texture": "./textures/moon/moon_normal.jpg",
+          "radius": 6.2,
+          "orbit_radius": 23463,
+          "eccentricity": 0.0002,
+          "orbit_inclination": 1.8,
+          "axial_tilt": 0.0,
+          "orbital_period": 1.26,
+          "rotation_period": 1.26,
+          "material": {
+            "diffuse": [0.6, 0.6, 0.6, 1.0],
+            "specular": [0.05, 0.05, 0.05, 1.0]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Jupiter",
+      "type": "planet",
+      "texture": "./textures/jupiter/jupiter.jpg",
+      "normal_texture": null,
+      "orbit_center": "Sun",
+      "radius": 69911,
+      "orbit_radius": 778500000,
+      "eccentricity": 0.0489,
+      "orbit_inclination": 1.31,
+      "axial_tilt": 3.13,
+      "orbital_period": 4331,
+      "rotation_period": 9.9,
+      "material": {
+        "diffuse": [0.9, 0.7, 0.5, 1.0],
+        "specular": [0.3, 0.3, 0.3, 1.0]
+      }
+    },
+
+    {
+      "name": "Saturn",
+      "type": "planet",
+      "texture": "./textures/saturn/saturn.jpg",
+      "normal_texture": null,
+      "orbit_center": "Sun",
+      "radius": 58232,
+      "orbit_radius": 1434000000,
+      "eccentricity": 0.0565,
+      "orbit_inclination": 2.49,
+      "axial_tilt": 26.73,
+      "orbital_period": 10747,
+      "rotation_period": 10.7,
+      "material": {
+        "diffuse": [0.9, 0.8, 0.6, 1.0],
+        "specular": [0.2, 0.2, 0.2, 1.0]
+      },
+      "rings": {
+        "secondary_texture": "./textures/saturn/saturn_ring_alpha.png",
+        "inner_radius": 70000,
+        "outer_radius": 140000
+      }
+    },
+
+    {
+      "name": "Uranus",
+      "type": "planet",
+      "texture": "./textures/uranus/uranus.jpg",
+      "normal_texture": null,
+      "orbit_center": "Sun",
+      "radius": 25362,
+      "orbit_radius": 2871000000,
+      "eccentricity": 0.046,
+      "orbit_inclination": 0.77,
+      "axial_tilt": 97.77,
+      "orbital_period": 30589,
+      "rotation_period": -17.2,
+      "material": {
+        "diffuse": [0.6, 0.8, 0.9, 1.0],
+        "specular": [0.2, 0.2, 0.3, 1.0]
+      }
+    },
+
+    {
+      "name": "Neptune",
+      "type": "planet",
+      "texture": "./textures/neptune/neptune.jpg",
+      "normal_texture": null,
+      "orbit_center": "Sun",
+      "radius": 24622,
+      "orbit_radius": 4495000000,
+      "eccentricity": 0.009,
+      "orbit_inclination": 1.77,
+      "axial_tilt": 28.32,
+      "orbital_period": 59800,
+      "rotation_period": 16.1,
+      "material": {
+        "diffuse": [0.2, 0.3, 0.9, 1.0],
+        "specular": [0.3, 0.3, 0.5, 1.0]
+      }
+    },
+
+    {
+      "name": "Pluto",
+      "type": "dwarf_planet",
+      "texture": "./textures/pluto/pluto.jpg",
+      "normal_texture": "./textures/pluto/pluto_normal.jpg",
+      "orbit_center": "Sun",
+      "radius": 1188.3,
+      "orbit_radius": 5906000000,
+      "eccentricity": 0.2488,
+      "orbit_inclination": 17.16,
+      "axial_tilt": 122.53,
+      "orbital_period": 90560,
+      "rotation_period": -153.3,
+      "material": {
+        "diffuse": [0.8, 0.7, 0.6, 1.0],
+        "specular": [0.1, 0.1, 0.1, 1.0]
+      }
+    }
+  ]
+}
