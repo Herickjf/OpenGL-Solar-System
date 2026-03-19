@@ -1,8 +1,8 @@
 {
   "scale": {
     "distance_scale": 1e-6,
-    "radius_scale": 1e-3,
-    "time_scale": 1000.0
+    "radius_scale": 0.5e-2,
+    "time_scale": 12.5
   },
 
   "lighting": {
@@ -128,7 +128,7 @@
         {
           "name": "Phobos",
           "texture": "./textures/moon/moon.jpg",
-          "normal_texture": "./textures/moon/moon_normal.jpg",
+          "normal_texture": "./textures/mars/phobos_bump.jpg",
           "radius": 11.3,
           "orbit_radius": 9376,
           "eccentricity": 0.0151,

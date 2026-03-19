@@ -9,17 +9,21 @@
 #include "cJSON.h"
 #include "bodies.h"
 
+// scale variables
 float distance_scale;
 float radius_scale;
 float time_scale;
 
+// celestial bodies array
 int body_count = 0;
 Body *bodies = NULL;
 
+// general positon structure
 typedef struct {
     float x, y, z;
 } Position;
 
+// camera initial settings
 typedef struct {
     Position lookFrom;
     Position lookAt;
@@ -27,28 +31,73 @@ typedef struct {
 } Camera;
 
 Camera cam = {
-    {0.0f, 5.0f, 0.0f},
+    {0.0f, 5000.0f, 0.0f},
     {0.0f, 0.0f, 0.0f},
-    {0.0f, 0.0f, -1.0f},
+    {0.0f, 0.0f, 1.0f},
 };
 
-// openGL =====================
+// time variables
+float time_sim = 0.0f;
+int last_time = 0;
 
+
+// logics
 void draw_sphere_lod(float radius, float x, float y, float z) {
     float dx = cam.lookFrom.x - x;
     float dy = cam.lookFrom.y - y;
     float dz = cam.lookFrom.z - z;
-
+    
     float distance = sqrt(dx*dx + dy*dy + dz*dz);
 
+    if (distance < 1.0f) distance = 1.0f;
     int slices = (int)(1000 * radius / distance);
-
+    
     if (slices < 10) slices = 10;
     if (slices > 100) slices = 100;
-
+    
     glutSolidSphere(radius, slices, slices);
 }
 
+void update() {
+    int current_time = glutGet(GLUT_ELAPSED_TIME);
+
+    float delta = (current_time - last_time) / 1000.0f; // segundos
+    last_time = current_time;
+
+    time_sim += delta * time_scale; // atualiza o tempo aplicando a escala temporal
+
+    glutPostRedisplay();
+}
+
+Position get_position(Body* body) {
+    // Sol fica parado
+    if (body->orbit_radius == 0) {
+        return (Position){0, 0, 0};
+    }
+
+    // velocidade angular
+    float angle = time_sim * (2.0f * M_PI / body->orbital_period);
+
+    float r = body->orbit_radius * distance_scale;
+
+    float x = r * cos(angle);
+    float z = r * sin(angle);
+    float y = 0.0f;
+
+    // inclinação da órbita (rotação no eixo X)
+    float inc = body->orbit_inclination * M_PI / 180.0f;
+
+    float y_rot = z * sin(inc);
+    float z_rot = z * cos(inc);
+
+    return (Position){
+        x,
+        y_rot,
+        z_rot
+    };
+}
+
+// openGL =====================
 void init(void)
 {
    GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
@@ -74,8 +123,8 @@ void display(void)
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 
-   // Câmera olhando de cima para baixo
-   gluLookAt(cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z,  
+    // Câmera olhando de cima para baixo
+    gluLookAt(cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z,  
              cam.lookAt.x, cam.lookAt.y, cam.lookAt.z,  
              cam.vUp.x, cam.vUp.y, cam.vUp.z); 
 
@@ -84,50 +133,52 @@ void display(void)
         Body sun = bodies[0];
         draw_sphere_lod(sun.radius * radius_scale, 0.0f, 0.0f, 0.0f);
 
-
         // Loop percorrendo todos os planetas carregados
         for (int i = 1; i < body_count; i++)
         {
-           glPushMatrix(); // Abre a matriz para este corpo celeste
-     
-           // 1. POSIÇÃO: Move a "caneta" para o lado. 
-           // Se você tiver a distância no JSON, troque a linha abaixo por algo como:
-           // glTranslatef(bodies[i].distance, 0.0f, 0.0f);
-           glTranslatef((i - (body_count / 2.0f)) * 3.0f, 0.0f, 0.0f); 
-     
-           // 2. TAMANHO: Desenha a esfera usando o raio real que veio do JSON
-           glutSolidSphere(bodies[i].radius * radius_scale, 50, 50);
-     
-           glPopMatrix(); // Fecha a matriz para o próximo planeta partir do centro novamente
+            Position pos = get_position(&bodies[i]);
+            glTranslatef(pos.x, pos.y, pos.z); 
+            glPushMatrix(); // Abre a matriz para este corpo celeste            
+                // TAMANHO: Desenha a esfera usando o raio que veio do JSON em escala
+                draw_sphere_lod(bodies[i].radius * radius_scale, pos.x, pos.y, pos.z);
+            glPopMatrix(); // Fecha a matriz para o próximo planeta partir do centro novamente
         }
     glPopMatrix(); //sol
    
-   glFlush();
+    glutSwapBuffers();
 }
 
-void reshape(int w, int h)
-{
-   glViewport(0, 0, (GLsizei)w, (GLsizei)h);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
+void reshape(int w, int h){
+    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
    
    // Aumentamos o limite de visão para -15.0 a 15.0 para caber as body_count esferas
-   if (w <= h)
-      glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w,
-              15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
-   else
-      glOrtho(-15.0 * (GLfloat)w / (GLfloat)h,
-              15.0 * (GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
+//    if (w <= h)
+//       glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w,
+//               15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
+//    else
+//       glOrtho(-15.0 * (GLfloat)w / (GLfloat)h,
+//               15.0 * (GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
               
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
+    glOrtho(-5000, 5000, -5000, 5000, -10000, 10000);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
-void keyboard(unsigned char key, int x, int y)
-{
-   switch (key)
-   {
-   case 27:
+void keyboard(unsigned char key, int x, int y){
+   switch (key){
+    case '+':  
+            if(time_scale >= 1600.0f) break;
+            time_scale *= 2.0f; 
+            printf("%f\n", time_scale);
+            break;
+        case '-':  
+            if(time_scale <= 12.500f) break;
+            time_scale *= 0.5f; 
+            printf("%f\n", time_scale);
+            break;
+    case 27:
       exit(0);
       break;
    }
@@ -148,12 +199,15 @@ int main(int argc, char **argv)
       printf("%s\n", bodies[i].name);
    }
 
+   last_time = glutGet(GLUT_ELAPSED_TIME);
+
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
    glutInitWindowSize(500, 500);
    glutInitWindowPosition(100, 100);
    glutCreateWindow(argv[0]);
    init();
+   glutIdleFunc(update);
    glutDisplayFunc(display);
    glutReshapeFunc(reshape);
    glutKeyboardFunc(keyboard);
