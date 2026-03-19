@@ -39,13 +39,13 @@ void keyboard(unsigned char key, int x, int y) {
         case '+':
             if (time_scale < 1600.0f) {
                 time_scale *= 2.0f;
-                printf("Time scale: %f\n", time_scale);
+                // printf("Time scale: %f\n", time_scale);
             }
             break;
         case '-':
             if (time_scale > 12.500f) {
                 time_scale *= 0.5f;
-                printf("Time scale: %f\n", time_scale);
+                // printf("Time scale: %f\n", time_scale);
             }
             break;
         case 27: // ESC

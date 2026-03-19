@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "stb_image.h" 
 #include "cJSON.h"
 #include "bodies.h"
 #include "app_state.h"
@@ -31,6 +32,8 @@ float time_sim = 0.0f;
 int last_time = 0;
 
 
+GLUquadric *quad;
+
 // logics
 void draw_sphere_lod(float radius, float x, float y, float z) {
     float dx = cam.lookFrom.x - x;
@@ -45,7 +48,7 @@ void draw_sphere_lod(float radius, float x, float y, float z) {
     if (slices < 10) slices = 10;
     if (slices > 100) slices = 100;
     
-    glutSolidSphere(radius, slices, slices);
+    gluSphere(quad, radius, slices, slices);
 }
 
 void update() {
@@ -90,6 +93,32 @@ Position get_position(Body* body) {
     };
 }
 
+Position get_moon_position(Moon* moon) {
+    // velocidade angular
+    float angle = time_sim * (2.0f * M_PI / moon->orbital_period);
+
+    float a = moon->orbit_radius * distance_scale;
+    float e = moon->eccentricity;
+
+    // distância ao foco (Sol)
+    float r = a * (1 - e*e) / (1 + e * cos(angle));
+
+    float x = r * cos(angle);
+    float z = r * sin(angle);
+
+    // inclinação da órbita (rotação no eixo X)
+    float inc = moon->orbit_inclination * M_PI / 180.0f;
+
+    float y_rot = z * sin(inc);
+    float z_rot = z * cos(inc);
+
+    return (Position){
+        x,
+        y_rot,
+        z_rot
+    };
+}
+
 // openGL =====================
 void init(void)
 {
@@ -107,6 +136,10 @@ void init(void)
    glEnable(GL_LIGHTING);
    glEnable(GL_LIGHT0);
    glEnable(GL_DEPTH_TEST);
+
+    quad = gluNewQuadric();
+    gluQuadricTexture(quad, GL_TRUE);
+    gluQuadricNormals(quad, GLU_SMOOTH);
 }
 
 void display(void)
@@ -125,19 +158,45 @@ void display(void)
         // glTranslatef(0.0f, 0.0f, 0.0f);
         Body sun = bodies[0];
         float sun_scale = 0.5f;
-        // glDisable(GL_LIGHTING);
-        draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f);
-        // glEnable(GL_LIGHTING);
 
-        // Loop percorrendo todos os planetas carregados
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, sun.texture_id);
+            draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+
+        // Desenhar cada planeta
         for (int i = 1; i < body_count; i++)
         {
-            Position pos = get_position(&bodies[i]);
-            glPushMatrix(); // Abre a matriz para este corpo celeste            
-                glTranslatef(pos.x, pos.y, pos.z); 
-                // TAMANHO: Desenha a esfera usando o raio que veio do JSON em escala
-                draw_sphere_lod(bodies[i].radius * radius_scale, pos.x, pos.y, pos.z);
-            glPopMatrix(); // Fecha a matriz para o próximo planeta partir do centro novamente
+            Position planet_pos = get_position(&bodies[i]);
+            glPushMatrix(); // Abre a matriz do corpo celeste i             
+                glTranslatef(planet_pos.x, planet_pos.y, planet_pos.z); 
+
+                glEnable(GL_TEXTURE_2D);
+                glBindTexture(GL_TEXTURE_2D, bodies[i].texture_id);
+                // desenha 
+                    draw_sphere_lod(bodies[i].radius * radius_scale, planet_pos.x, planet_pos.y, planet_pos.z);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glDisable(GL_TEXTURE_2D);
+
+                // desenha as luas
+                for(int j = 0; j < bodies[i].moons_count; j++){
+                    Moon moon = bodies[i].moons[j];
+                    Position moon_pos = get_moon_position(&moon);
+
+                    glPushMatrix(); // Abre matriz da lua j
+                        glTranslatef(moon_pos.x, moon_pos.y, moon_pos.z);
+
+                        glEnable(GL_TEXTURE_2D);
+                        glBindTexture(GL_TEXTURE_2D, moon.texture_id);
+                            draw_sphere_lod(moon.radius * radius_scale, moon_pos.x, moon_pos.y, moon_pos.z);
+                        glBindTexture(GL_TEXTURE_2D, 0);
+                        glDisable(GL_TEXTURE_2D);
+                    glPopMatrix(); // Fecha matriz da lua j
+                }
+
+
+            glPopMatrix(); // Fecha matriz do corpo celeste i
         }
     glPopMatrix(); //sol
    
@@ -179,11 +238,6 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   for (int i = 0; i < body_count; i++)
-   {
-      printf("%s\n", bodies[i].name);
-   }
-
    last_time = glutGet(GLUT_ELAPSED_TIME);
 
    glutInit(&argc, argv);
@@ -192,6 +246,9 @@ int main(int argc, char **argv)
    glutInitWindowPosition(100, 100);
    glutCreateWindow(argv[0]);
    init();
+
+   load_all_textures(bodies, body_count);
+
    glutIdleFunc(update);
    glutDisplayFunc(display);
    glutReshapeFunc(reshape);
