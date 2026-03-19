@@ -1,4 +1,4 @@
-// g++ main.c cJSON.c utils.c input.c -o solarSystem -lGL -lGLU -lglut -lm && ./solarSystem
+// g++ main.c cJSON.c utils.c input.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
 
 #include <GL/glut.h>
 #include <stdio.h>
@@ -197,6 +197,7 @@ int main(int argc, char **argv)
    glutReshapeFunc(reshape);
    glutKeyboardFunc(keyboard);
    glutMouseFunc(mouse);
+   glutMotionFunc(motion);
    glutMainLoop();
 
    return 0;
