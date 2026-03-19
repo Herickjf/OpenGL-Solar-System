@@ -1,4 +1,4 @@
-// g++ main.c cJSON.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
+// g++ main.c cJSON.c utils.c input.c -o solarSystem -lGL -lGLU -lglut -lm && ./solarSystem
 
 #include <GL/glut.h>
 #include <stdio.h>
@@ -8,6 +8,8 @@
 
 #include "cJSON.h"
 #include "bodies.h"
+#include "app_state.h"
+#include "input.h"
 
 // scale variables
 float distance_scale;
@@ -17,18 +19,6 @@ float time_scale;
 // celestial bodies array
 int body_count = 0;
 Body *bodies = NULL;
-
-// general positon structure
-typedef struct {
-    float x, y, z;
-} Position;
-
-// camera initial settings
-typedef struct {
-    Position lookFrom;
-    Position lookAt;
-    Position vUp;
-} Camera;
 
 Camera cam = {
     {0.0f, 5000.0f, 0.0f},
@@ -166,24 +156,6 @@ void reshape(int w, int h){
     glLoadIdentity();
 }
 
-void keyboard(unsigned char key, int x, int y){
-   switch (key){
-    case '+':  
-            if(time_scale >= 1600.0f) break;
-            time_scale *= 2.0f; 
-            printf("%f\n", time_scale);
-            break;
-        case '-':  
-            if(time_scale <= 12.500f) break;
-            time_scale *= 0.5f; 
-            printf("%f\n", time_scale);
-            break;
-    case 27:
-      exit(0);
-      break;
-   }
-}
-
 int main(int argc, char **argv)
 {
    bodies = load_bodies("configs.json", &body_count);
@@ -211,6 +183,7 @@ int main(int argc, char **argv)
    glutDisplayFunc(display);
    glutReshapeFunc(reshape);
    glutKeyboardFunc(keyboard);
+   glutMouseFunc(mouse);
    glutMainLoop();
 
    return 0;
