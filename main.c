@@ -31,9 +31,9 @@ typedef struct {
 } Camera;
 
 Camera cam = {
-    {0.0f, 5000.0f, 0.0f},
+    {0.0f, 800.0f, 2500.0f},
     {0.0f, 0.0f, 0.0f},
-    {0.0f, 0.0f, 1.0f},
+    {0.0f, 1.0f, 0.0f},
 };
 
 // time variables
@@ -78,11 +78,14 @@ Position get_position(Body* body) {
     // velocidade angular
     float angle = time_sim * (2.0f * M_PI / body->orbital_period);
 
-    float r = body->orbit_radius * distance_scale;
+    float a = body->orbit_radius * distance_scale;
+    float e = body->eccentricity;
+
+    // distância ao foco (Sol)
+    float r = a * (1 - e*e) / (1 + e * cos(angle));
 
     float x = r * cos(angle);
     float z = r * sin(angle);
-    float y = 0.0f;
 
     // inclinação da órbita (rotação no eixo X)
     float inc = body->orbit_inclination * M_PI / 180.0f;
@@ -129,16 +132,19 @@ void display(void)
              cam.vUp.x, cam.vUp.y, cam.vUp.z); 
 
     glPushMatrix(); //sol
-        glTranslatef(0.0f, 0.0f, 0.0f);
+        // glTranslatef(0.0f, 0.0f, 0.0f);
         Body sun = bodies[0];
-        draw_sphere_lod(sun.radius * radius_scale, 0.0f, 0.0f, 0.0f);
+        float sun_scale = 0.5f;
+        // glDisable(GL_LIGHTING);
+        draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f);
+        // glEnable(GL_LIGHTING);
 
         // Loop percorrendo todos os planetas carregados
         for (int i = 1; i < body_count; i++)
         {
             Position pos = get_position(&bodies[i]);
-            glTranslatef(pos.x, pos.y, pos.z); 
             glPushMatrix(); // Abre a matriz para este corpo celeste            
+                glTranslatef(pos.x, pos.y, pos.z); 
                 // TAMANHO: Desenha a esfera usando o raio que veio do JSON em escala
                 draw_sphere_lod(bodies[i].radius * radius_scale, pos.x, pos.y, pos.z);
             glPopMatrix(); // Fecha a matriz para o próximo planeta partir do centro novamente
@@ -160,8 +166,15 @@ void reshape(int w, int h){
 //    else
 //       glOrtho(-15.0 * (GLfloat)w / (GLfloat)h,
 //               15.0 * (GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
+    // glOrtho(-2000, 2000, -2000, 2000, -5000, 5000);
               
-    glOrtho(-5000, 5000, -5000, 5000, -10000, 10000);
+    gluPerspective(
+        60.0,                 // FOV (campo de visão)
+        (float)w / (float)h,  // proporção da tela
+        1.0,                  // plano próximo
+        20000.0               // plano distante
+    );
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
