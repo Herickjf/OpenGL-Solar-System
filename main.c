@@ -238,14 +238,15 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   last_time = glutGet(GLUT_ELAPSED_TIME);
-
    glutInit(&argc, argv);
    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
    glutInitWindowSize(500, 500);
    glutInitWindowPosition(100, 100);
    glutCreateWindow(argv[0]);
+
+    last_time = glutGet(GLUT_ELAPSED_TIME);
    init();
+    init_camera_controller();
 
    load_all_textures(bodies, body_count);
 
