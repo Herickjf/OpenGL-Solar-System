@@ -10,6 +10,10 @@
     "shininess": 32.0
   },
 
+  "stars" : {
+    "texture": "./textures/stars/stars.jpg"
+  },
+
   "bodies": [
     {
       "name": "Sun",
@@ -90,7 +94,7 @@
       "moons": [
         {
           "name": "Moon",
-          "texture": "./textures/moon/color.jpg",
+          "texture": "./textures/moon/moon.jpg",
           "normal_texture": "./textures/moon/bump.jpg",
           "radius": 4.0,
           "orbit_radius": 50.0,
@@ -127,7 +131,7 @@
       "moons": [
         {
           "name": "Phobos",
-          "texture": "./textures/moon/color.jpg",
+          "texture": "./textures/moon/moon.jpg",
           "normal_texture": "./textures/moon/bump.jpg",
           "radius": 2.0,
           "orbit_radius": 30.0,
@@ -143,7 +147,7 @@
         },
         {
           "name": "Deimos",
-          "texture": "./textures/moon/color.jpg",
+          "texture": "./textures/moon/moon.jpg",
           "normal_texture": "./textures/moon/bump.jpg",
           "radius": 1.5,
           "orbit_radius": 50.0,
@@ -185,7 +189,7 @@
       "texture": "./textures/saturn/saturn.jpg",
       "normal_texture": null,
       "orbit_center": "Sun",
-      "radius": 50.0,
+      "radius": 45.0,
       "orbit_radius": 1800.0,
       "eccentricity": 0.0565,
       "orbit_inclination": 2.49,

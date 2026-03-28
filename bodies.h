@@ -9,6 +9,10 @@
 
 #include "stb_image.h" 
 #include "utils.h"
+#include "calculus.h"
+#include "app_state.h"
+
+extern GLUquadric *quad;
 
 // =====================
 extern float distance_scale;
@@ -17,7 +21,6 @@ extern float time_scale;
 
 // =====================
 // Rings (Saturn, etc.)
-// =====================
 typedef struct {
     char* texture_path;
     GLuint texture_id;
@@ -77,6 +80,12 @@ typedef struct Body {
     Rings* rings;
 } Body;
 
+typedef struct {
+    char* texture_path;
+    GLuint texture_id;
+} Stars;
+
+Stars stars;
 
 // HELPERS
 // =====================
@@ -93,6 +102,8 @@ static float get_float(cJSON* obj, const char* key) {
 static GLuint loadTexture(const char *filename) {
     int width, height, nrChannels;
 
+    stbi_set_flip_vertically_on_load(1);
+
     unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
     if (!data) {
         printf("Erro ao carregar textura: %s\n", filename);
@@ -103,7 +114,6 @@ static GLuint loadTexture(const char *filename) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    // Parâmetros
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -122,17 +132,19 @@ static GLuint loadTexture(const char *filename) {
         return 0;
     }
 
-    // Upload da textura
     gluBuild2DMipmaps(GL_TEXTURE_2D, format, width, height, format, GL_UNSIGNED_BYTE, data);
 
     stbi_image_free(data);
-
-    glBindTexture(GL_TEXTURE_2D, 0); // limpa bind
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     return texture;
 }
 
-void load_all_textures(Body* bodies, int count) {
+static void load_all_textures(Body* bodies, int count) {
+    if(stars.texture_path){
+        stars.texture_id = loadTexture(stars.texture_path);
+    }
+
     for (int i = 0; i < count; i++) {
         Body* b = &bodies[i];
 
@@ -178,7 +190,7 @@ static Moon parse_moon(cJSON* moon_json) {
     moon.eccentricity = get_float(moon_json, "eccentricity");
     moon.orbit_inclination = get_float(moon_json, "orbit_inclination");
     moon.axial_tilt = get_float(moon_json, "axial_tilt");
-    moon.orbital_period = get_float(moon_json, "orbital_period");
+    moon.orbital_period =  - get_float(moon_json, "orbital_period");
     moon.rotation_period = get_float(moon_json, "rotation_period");
 
     return moon;
@@ -221,7 +233,7 @@ static Body parse_body(cJSON* body_json) {
     body.eccentricity = get_float(body_json, "eccentricity");
     body.orbit_inclination = get_float(body_json, "orbit_inclination");
     body.axial_tilt = get_float(body_json, "axial_tilt");
-    body.orbital_period = get_float(body_json, "orbital_period");
+    body.orbital_period = - get_float(body_json, "orbital_period");
     body.rotation_period = get_float(body_json, "rotation_period");
 
     body.parent = NULL;
@@ -302,6 +314,11 @@ static Body* load_bodies(const char* path, int* out_count) {
 
     load_scale(root);
 
+    cJSON* stars_json = cJSON_GetObjectItem(root, "stars");
+    if(stars_json)
+        stars.texture_path = get_string(stars_json, "texture");
+
+
     cJSON* bodies_json = cJSON_GetObjectItem(root, "bodies");
 
     int count = cJSON_GetArraySize(bodies_json);
@@ -316,5 +333,152 @@ static Body* load_bodies(const char* path, int* out_count) {
     *out_count = count;
     return bodies;
 }
+
+// ==========================
+// desenho dos corpos 
+
+static void draw_stars_background() {
+    glPushMatrix();
+
+    // segue a câmera (sempre centralizado)
+    glTranslatef(cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z);
+
+    // desliga coisas que atrapalham
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, stars.texture_id);
+
+    // 🔥 MUITO IMPORTANTE: inverter a esfera
+    glScalef(-1.0f, 1.0f, 1.0f);
+
+    // esfera gigante
+    gluSphere(quad, 5000.0f, 50, 50);
+
+    // restaura estado
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glPopMatrix();
+}
+
+static void draw_orbit(Body* body) {
+    if (body->orbit_radius == 0) return; // Sol não tem órbita
+    
+    int segments = 150;  // Quantidade de pontos da curva
+    float a = body->orbit_radius * distance_scale;
+    float e = body->eccentricity;
+    float inc = body->orbit_inclination * M_PI / 180.0f;
+    
+    glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_LIGHTING);
+            glColor4f(1.0f, 1.0f, 1.0f, 0.1f);  // Cor cinza
+            
+            glBegin(GL_LINE_STRIP);
+                for (int i = 0; i <= segments; i++) {
+                    float angle = 2.0f * M_PI * i / segments;
+                    
+                    // Equação da órbita (elipse)
+                    float r = a * (1 - e*e) / (1 + e * cos(angle));
+                    
+                    float x = r * cos(angle);
+                    float z = r * sin(angle);
+                    
+                    // Aplica inclinação
+                    float y = z * sin(inc);
+                    float z_rot = z * cos(inc);
+                    
+                    glVertex3f(x, y, z_rot);
+                }
+                
+            glEnd();
+        glDisable(GL_BLEND);
+    glEnable(GL_LIGHTING);
+}
+
+static void draw_sphere_lod(float radius, float x, float y, float z, float body_spin) {
+    float dx = cam.lookFrom.x - x;
+    float dy = cam.lookFrom.y - y;
+    float dz = cam.lookFrom.z - z;
+    
+    float distance = sqrt(dx*dx + dy*dy + dz*dz);
+
+    if (distance < 1.0f) distance = 1.0f;
+
+    int slices = (int)(1000 * radius / distance);
+    
+    if (slices < 10) slices = 10;
+    if (slices > 100) slices = 100;
+
+    // encapsula a rotação da esfera
+    glPushMatrix();
+        glRotatef(body_spin, 0.0f, 1.0f, 0.0f); // rotação do corpo de fato
+        glRotatef(-90.0f, 1.0f, 0.0f, 0.0f); // correção de eixo da gluSphere
+        gluSphere(quad, radius, slices, slices);
+    glPopMatrix();
+}
+
+static void draw_rings(Rings* rings, float planet_radius) {
+    if (!rings) return;
+
+    float base = planet_radius * radius_scale;
+
+    float inner = base * 1.2f;
+    float outer = base * 2.0f;
+
+    int segments = 100;
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, rings->texture_id);
+
+    // essencial pra transparência da textura dos anéis
+    glDisable(GL_BLEND);
+
+    // evita problema de iluminação estranha
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= segments; i++) {
+        float angle = 2.0f * M_PI * i / segments;
+
+        float cosA = cos(angle);
+        float sinA = sin(angle);
+
+        // ---- coordenadas ----
+        float x_inner = inner * cosA;
+        float z_inner = inner * sinA;
+
+        float x_outer = outer * cosA;
+        float z_outer = outer * sinA;
+
+        // ---- UV (radial) ----
+        float u = (float)i / segments;
+
+        float u_min = 0.2f;
+        float u_max = 0.8f;
+
+        // interno
+        glTexCoord2f(u_min, u);
+        glVertex3f(x_inner, 0.0f, z_inner);
+        // externo
+        glTexCoord2f(u_max, u);
+        glVertex3f(x_outer, 0.0f, z_outer);
+    }
+    glEnd();
+
+    glDisable(GL_BLEND);
+    glEnable(GL_LIGHTING);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+}
+
 
 #endif

@@ -1,4 +1,4 @@
-// g++ main.c cJSON.c utils.c input.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
+// g++ main.c cJSON.c utils.c input.c stb_image.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
 
 #include <GL/glut.h>
 #include <stdio.h>
@@ -6,11 +6,17 @@
 #include <string.h>
 #include <math.h>
 
+#include "calculus.h"
 #include "stb_image.h" 
 #include "cJSON.h"
-#include "bodies.h"
+#include "bodies.h" 
 #include "app_state.h"
 #include "input.h"
+
+// controle de fps
+int last_frame_time = 0;
+int target_fps = 30;  // Limite a 60 FPS
+int frame_duration_ms = 1000 / target_fps; 
 
 // scale variables
 float distance_scale;
@@ -22,34 +28,20 @@ int body_count = 0;
 Body *bodies = NULL;
 
 Camera cam = {
-    {0.0f, 800.0f, 2500.0f},
-    {0.0f, 0.0f, 0.0f},
-    {0.0f, 1.0f, 0.0f},
+    {0.0f, 800.0f,  2500.0f},
+    {0.0f, 0.0f,    0.0f},
+    {0.0f, 1.0f,    0.0f},
 };
 
 // time variables
 float time_sim = 0.0f;
 int last_time = 0;
 
-
 GLUquadric *quad;
-
 // logics
-void draw_sphere_lod(float radius, float x, float y, float z) {
-    float dx = cam.lookFrom.x - x;
-    float dy = cam.lookFrom.y - y;
-    float dz = cam.lookFrom.z - z;
-    
-    float distance = sqrt(dx*dx + dy*dy + dz*dz);
 
-    if (distance < 1.0f) distance = 1.0f;
-    int slices = (int)(1000 * radius / distance);
-    
-    if (slices < 10) slices = 10;
-    if (slices > 100) slices = 100;
-    
-    gluSphere(quad, radius, slices, slices);
-}
+
+void update_timer(int);
 
 void update() {
     int current_time = glutGet(GLUT_ELAPSED_TIME);
@@ -59,65 +51,21 @@ void update() {
 
     time_sim += delta * time_scale; // atualiza o tempo aplicando a escala temporal
 
-    glutPostRedisplay();
-}
-
-Position get_position(Body* body) {
-    // Sol fica parado
-    if (body->orbit_radius == 0) {
-        return (Position){0, 0, 0};
+    // Só redesenha se já passou tempo suficiente desde o último frame
+    if (current_time - last_frame_time >= frame_duration_ms) {
+        last_frame_time = current_time;
+        glutPostRedisplay();
     }
 
-    // velocidade angular
-    float angle = time_sim * (2.0f * M_PI / body->orbital_period);
-
-    float a = body->orbit_radius * distance_scale;
-    float e = body->eccentricity;
-
-    // distância ao foco (Sol)
-    float r = a * (1 - e*e) / (1 + e * cos(angle));
-
-    float x = r * cos(angle);
-    float z = r * sin(angle);
-
-    // inclinação da órbita (rotação no eixo X)
-    float inc = body->orbit_inclination * M_PI / 180.0f;
-
-    float y_rot = z * sin(inc);
-    float z_rot = z * cos(inc);
-
-    return (Position){
-        x,
-        y_rot,
-        z_rot
-    };
+    // Agenda o próximo update após um pequeno delay
+    glutTimerFunc(1, update_timer, 0);
 }
 
-Position get_moon_position(Moon* moon) {
-    // velocidade angular
-    float angle = time_sim * (2.0f * M_PI / moon->orbital_period);
-
-    float a = moon->orbit_radius * distance_scale;
-    float e = moon->eccentricity;
-
-    // distância ao foco (Sol)
-    float r = a * (1 - e*e) / (1 + e * cos(angle));
-
-    float x = r * cos(angle);
-    float z = r * sin(angle);
-
-    // inclinação da órbita (rotação no eixo X)
-    float inc = moon->orbit_inclination * M_PI / 180.0f;
-
-    float y_rot = z * sin(inc);
-    float z_rot = z * cos(inc);
-
-    return (Position){
-        x,
-        y_rot,
-        z_rot
-    };
+// Função auxiliar para timer
+void update_timer(int value) {
+    update();
 }
+
 
 // openGL =====================
 void init(void)
@@ -154,16 +102,24 @@ void display(void)
              cam.lookAt.x, cam.lookAt.y, cam.lookAt.z,  
              cam.vUp.x, cam.vUp.y, cam.vUp.z); 
 
+             
     glPushMatrix(); //sol
-        // glTranslatef(0.0f, 0.0f, 0.0f);
+        draw_stars_background();
         Body sun = bodies[0];
         float sun_scale = 0.5f;
 
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, sun.texture_id);
-            draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f);
+            draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f, time_sim* (360.0f / sun.rotation_period));
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
+
+        // desenha as órbitas primeiro
+        for (int i = 0; i < body_count; i++) {
+            if (bodies[i].orbit_radius > 0) {  // Ignora o Sol
+                draw_orbit(&bodies[i]);
+            }
+        }
 
         // Desenhar cada planeta
         for (int i = 1; i < body_count; i++)
@@ -171,13 +127,27 @@ void display(void)
             Position planet_pos = get_position(&bodies[i]);
             glPushMatrix(); // Abre a matriz do corpo celeste i             
                 glTranslatef(planet_pos.x, planet_pos.y, planet_pos.z); 
+                glRotatef(bodies[i].axial_tilt, 0.0f, 1.0f, 0.0f);
 
                 glEnable(GL_TEXTURE_2D);
                 glBindTexture(GL_TEXTURE_2D, bodies[i].texture_id);
                 // desenha 
-                    draw_sphere_lod(bodies[i].radius * radius_scale, planet_pos.x, planet_pos.y, planet_pos.z);
+                    draw_sphere_lod(bodies[i].radius * radius_scale, 
+                                    planet_pos.x, planet_pos.y, planet_pos.z, 
+                                    time_sim * (360.0f / bodies[i].rotation_period));
                 glBindTexture(GL_TEXTURE_2D, 0);
                 glDisable(GL_TEXTURE_2D);
+
+                if (bodies[i].rings) {
+                    glPushMatrix();
+                        // inclinação do plano do anel
+                        glRotatef(bodies[i].axial_tilt - 180.0f, 1.0f, 0.0f, 0.0f);
+
+                        // rotação ao redor do planeta (opcional, quase imperceptível)
+                        glRotatef(time_sim * 20.0f, 0.0f, 1.0f, 0.0f);
+                        draw_rings(bodies[i].rings, bodies[i].radius);
+                    glPopMatrix();
+                }
 
                 // desenha as luas
                 for(int j = 0; j < bodies[i].moons_count; j++){
@@ -189,7 +159,9 @@ void display(void)
 
                         glEnable(GL_TEXTURE_2D);
                         glBindTexture(GL_TEXTURE_2D, moon.texture_id);
-                            draw_sphere_lod(moon.radius * radius_scale, moon_pos.x, moon_pos.y, moon_pos.z);
+                            draw_sphere_lod(moon.radius * radius_scale, 
+                                            moon_pos.x, moon_pos.y, moon_pos.z,
+                                        time_sim* (360.0f / moon.rotation_period));
                         glBindTexture(GL_TEXTURE_2D, 0);
                         glDisable(GL_TEXTURE_2D);
                     glPopMatrix(); // Fecha matriz da lua j
@@ -250,7 +222,8 @@ int main(int argc, char **argv)
 
    load_all_textures(bodies, body_count);
 
-   glutIdleFunc(update);
+   // update
+   glutTimerFunc(0, update_timer, 0);  // Use timer em vez de idle
    glutDisplayFunc(display);
    glutReshapeFunc(reshape);
    glutKeyboardFunc(keyboard);
