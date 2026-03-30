@@ -1,5 +1,5 @@
 /*
-g++ main.c src/bodies.c src/hud.c src/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW && ./solarSystem 
+g++ main.c src/bodies.c src/hud.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW && ./solarSystem 
 */
 
 #include <GL/glew.h>

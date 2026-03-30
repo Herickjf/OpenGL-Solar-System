@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "cJSON.h"
+#include "../libs/cJSON.h"
 #include "structures.h"
 
 // externos

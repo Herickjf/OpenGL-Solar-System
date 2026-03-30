@@ -1,5 +1,5 @@
 #include "bodies.h"
-#include "stb_image.h"
+#include "../libs/stb_image.h"
 #include "utils.h"
 #include "calculus.h"
 #include "app_state.h"
