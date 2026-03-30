@@ -5,6 +5,8 @@
 
 #include "app_state.h"
 #include "input.h"
+#include "structures.h"
+#include "hud.h"
 
 // Variáveis de estado do mouse
 static int is_dragging = 0;
@@ -20,6 +22,9 @@ static float camera_speed = 50.0f;
 static float scroll_speed = 100.0f;
 static float mouse_sensitivity = 0.003f;  // Aumentada para resposta mais rápida
 static float look_distance = 1000.0f;
+static float previous_time_scale = 32.0f;
+int is_paused = 0;
+
 
 // Opção: Inverter eixos do mouse (descomente se preferir)
 // #define INVERT_MOUSE_X
@@ -139,15 +144,15 @@ void keyboard(unsigned char key, int x, int y) {
             cam.lookFrom.z += right.z * current_speed;
             update_camera();
             break;
-        case 'q':
-        case 'Q':
+        case 'e':
+        case 'E':
             cam.lookFrom.x += up.x * current_speed;
             cam.lookFrom.y += up.y * current_speed;
             cam.lookFrom.z += up.z * current_speed;
             update_camera();
             break;
-        case 'e':
-        case 'E':
+        case 'q':
+        case 'Q':
             cam.lookFrom.x -= up.x * current_speed;
             cam.lookFrom.y -= up.y * current_speed;
             cam.lookFrom.z -= up.z * current_speed;
@@ -161,13 +166,13 @@ void keyboard(unsigned char key, int x, int y) {
             break;
         case '+':
         case '=':
-            if (time_scale < 1600.0f) { // multiplo de 2
+            if (time_scale < 1024.0f) { // multiplo de 2
                 time_scale *= 2.0f;
                 printf("Time scale: %.2fx\n", time_scale);
             }
             break;
         case '-':
-            if (time_scale > 0.78125f) { // multiplo de 2
+            if (time_scale > 0) { // Evita escala negativa
                 time_scale *= 0.5f;
                 printf("Time scale: %.2fx\n", time_scale);
             }
@@ -176,6 +181,23 @@ void keyboard(unsigned char key, int x, int y) {
         case 'R':
             time_scale = 100.0f;
             printf("Time scale reset to: %.2fx\n", time_scale);
+            break;
+        case 'h':
+        case 'H':
+            show_hud = !show_hud;
+            break;
+
+        case 'p':
+        case 'P':
+            is_paused = !is_paused;
+            if(is_paused) {
+                previous_time_scale = time_scale;
+                time_scale = 0.0f;
+                printf("Simulation paused\n");
+            } else {
+                time_scale = previous_time_scale;
+                printf("Simulation resumed, time scale: %.2fx\n", time_scale);
+            }
             break;
         case 27:
             exit(0);
@@ -200,6 +222,7 @@ void mouse(int button, int state, int x, int y) {
             last_mouse_x = x;
             last_mouse_y = y;
             glutSetCursor(GLUT_CURSOR_NONE);
+            hud_click(x, y);
         } 
         else if (button == 3) {
             forward = get_forward_vector();

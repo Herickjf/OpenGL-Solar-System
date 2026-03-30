@@ -2,7 +2,7 @@
   "scale": {
     "distance_scale": 1.0,
     "radius_scale": 1.0,
-    "time_scale": 50.0
+    "time_scale": 32.0
   },
 
   "lighting": {
@@ -77,7 +77,7 @@
       "name": "Earth",
       "type": "planet",
       "texture": "./textures/earth/earth.jpg",
-      "secondary_texture": "./textures/earth/earth_clouds.jpg",
+      "secondary_texture": "./textures/earth/city_lights.jpg",
       "normal_texture": "./textures/earth/bump.jpg",
       "orbit_center": "Sun",
       "radius": 20.0,
@@ -131,8 +131,9 @@
       "moons": [
         {
           "name": "Phobos",
-          "texture": "./textures/moon/moon.jpg",
-          "normal_texture": "./textures/moon/bump.jpg",
+          "texture": "./textures/mars/phobos_color.jpg",
+          "normal_texture": "./textures/mars/phobos_bump.jpg",
+          "secondary_texture": "./textures/mars/phobos.obj.bin",
           "radius": 2.0,
           "orbit_radius": 30.0,
           "eccentricity": 0.0151,
@@ -147,8 +148,9 @@
         },
         {
           "name": "Deimos",
-          "texture": "./textures/moon/moon.jpg",
-          "normal_texture": "./textures/moon/bump.jpg",
+          "texture": "./textures/mars/deimos_color.jpg",
+          "normal_texture": "./textures/mars/deimos_bump.jpg",
+          "secondary_texture": "./textures/mars/deimos.obj.bin",
           "radius": 1.5,
           "orbit_radius": 50.0,
           "eccentricity": 0.0002,

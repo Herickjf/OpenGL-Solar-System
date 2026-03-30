@@ -1,80 +1,187 @@
-// g++ main.c cJSON.c utils.c input.c stb_image.c -o solarSystem -lGL -lGLU -lglut && ./solarSystem
+/*
+g++ main.c src/bodies.c src/hud.c src/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW && ./solarSystem 
+*/
 
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 
-#include "calculus.h"
-#include "stb_image.h" 
-#include "cJSON.h"
-#include "bodies.h" 
 #include "app_state.h"
 #include "input.h"
+#include "bodies.h"
+#include "draw.h"
+#include "hud.h"
+#include "calculus.h"
 
-// controle de fps
+// ======================
+// FPS
+// ======================
 int last_frame_time = 0;
-int target_fps = 30;  // Limite a 60 FPS
-int frame_duration_ms = 1000 / target_fps; 
+int target_fps = 30;
+int frame_duration_ms = 1000 / target_fps;
 
-// scale variables
+// ======================
+// escala
+// ======================
 float distance_scale;
 float radius_scale;
 float time_scale;
 
-// celestial bodies array
+// ======================
+// corpos
+// ======================
 int body_count = 0;
 Body *bodies = NULL;
 
+// ======================
+// câmera
+// ======================
 Camera cam = {
-    {0.0f, 800.0f,  2500.0f},
-    {0.0f, 0.0f,    0.0f},
-    {0.0f, 1.0f,    0.0f},
+    {0.0f, 800.0f, 2500.0f},
+    {0.0f, 0.0f, 0.0f},
+    {0.0f, 1.0f, 0.0f},
 };
 
-// time variables
+// foco (GLOBAL)
+Body* focused_body = NULL;
+Moon* focused_moon = NULL;
+Body* moon_parent = NULL;
+
+// ======================
+// tempo
+// ======================
 float time_sim = 0.0f;
 int last_time = 0;
 
 GLUquadric *quad;
-// logics
 
-
+// ======================
+// FORWARD DECLARATIONS
+// ======================
 void update_timer(int);
 
+// ======================
+// UTIL: LERP
+// ======================
+float lerp(float a, float b, float t) {
+    return a + (b - a) * t;
+}
+
+Position lerp_pos(Position a, Position b, float t) {
+    return (Position){
+        lerp(a.x, b.x, t),
+        lerp(a.y, b.y, t),
+        lerp(a.z, b.z, t)
+    };
+}
+
+// ======================
+// CAMERA FOLLOW
+// ======================
+void update_camera_follow() {
+    Position target;
+    float dist = 300.0f;
+
+    // ======================
+    // PLANETA
+    // ======================
+    if (focused_body) {
+        target = get_position(focused_body);
+
+        dist = focused_body->radius * radius_scale * 6.0f;
+    }
+
+    // ======================
+    // LUA
+    // ======================
+    else if (focused_moon) {
+
+        Position moon_rel = get_moon_position(focused_moon);
+
+        Position parent_pos = {0,0,0};
+
+        if (moon_parent) {
+            parent_pos = get_position(moon_parent);
+        }
+
+        target = (Position){
+            parent_pos.x + moon_rel.x,
+            parent_pos.y + moon_rel.y,
+            parent_pos.z + moon_rel.z
+        };
+
+        // 🔥 distância proporcional à órbita (muito melhor)
+        dist = focused_moon->orbit_radius * distance_scale * 2.5f;
+    }
+    else {
+        return;
+    }
+
+    // ======================
+    // direção da câmera (melhor visual)
+    // ======================
+    float len = sqrt(3.0f);
+
+    Position offset = {
+        dist * (1.0f / len),
+        dist * (1.0f / len),
+        dist * (1.0f / len)
+    };
+
+    Position desired_cam = {
+        target.x + offset.x,
+        target.y + offset.y,
+        target.z + offset.z
+    };
+
+    // ======================
+    // suavização mais estável
+    // ======================
+    float smooth_pos = 0.08f;
+    float smooth_look = 0.12f;
+
+    cam.lookFrom = lerp_pos(cam.lookFrom, desired_cam, smooth_pos);
+    cam.lookAt   = lerp_pos(cam.lookAt, target, smooth_look);
+}
+
+// ======================
+// UPDATE
+// ======================
 void update() {
     int current_time = glutGet(GLUT_ELAPSED_TIME);
 
-    float delta = (current_time - last_time) / 1000.0f; // segundos
+    float delta = (current_time - last_time) / 1000.0f;
     last_time = current_time;
 
-    time_sim += delta * time_scale; // atualiza o tempo aplicando a escala temporal
+    time_sim += delta * time_scale;
 
-    // Só redesenha se já passou tempo suficiente desde o último frame
+    // câmera segue foco
+    update_camera_follow();
+
     if (current_time - last_frame_time >= frame_duration_ms) {
         last_frame_time = current_time;
         glutPostRedisplay();
     }
 
-    // Agenda o próximo update após um pequeno delay
     glutTimerFunc(1, update_timer, 0);
 }
 
-// Função auxiliar para timer
 void update_timer(int value) {
     update();
 }
 
-
-// openGL =====================
+// ======================
+// INIT OPENGL
+// ======================
 void init(void)
 {
-   GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-   GLfloat mat_shininess[] = {50.0};
-   GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
+   GLfloat mat_specular[] = {1,1,1,1};
+   GLfloat mat_shininess[] = {50};
+   GLfloat light_position[] = {1,1,1,0};
 
-   glClearColor(0.0, 0.0, 0.0, 0.0);
+   glClearColor(0,0,0,0);
    glShadeModel(GL_SMOOTH);
 
    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
@@ -85,151 +192,105 @@ void init(void)
    glEnable(GL_LIGHT0);
    glEnable(GL_DEPTH_TEST);
 
-    quad = gluNewQuadric();
-    gluQuadricTexture(quad, GL_TRUE);
-    gluQuadricNormals(quad, GLU_SMOOTH);
+   quad = gluNewQuadric();
+   gluQuadricTexture(quad, GL_TRUE);
+   gluQuadricNormals(quad, GLU_SMOOTH);
 }
 
+// ======================
+// DISPLAY
+// ======================
 void display(void)
 {
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-    // Câmera olhando de cima para baixo
-    gluLookAt(cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z,  
-             cam.lookAt.x, cam.lookAt.y, cam.lookAt.z,  
-             cam.vUp.x, cam.vUp.y, cam.vUp.z); 
+    gluLookAt(
+        cam.lookFrom.x, cam.lookFrom.y, cam.lookFrom.z,
+        cam.lookAt.x,   cam.lookAt.y,   cam.lookAt.z,
+        cam.vUp.x,      cam.vUp.y,      cam.vUp.z
+    );
 
-             
-    glPushMatrix(); //sol
-        draw_stars_background();
-        Body sun = bodies[0];
-        float sun_scale = 0.5f;
+    glPushMatrix();
 
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, sun.texture_id);
-            draw_sphere_lod(sun.radius * radius_scale * sun_scale, 0.0f, 0.0f, 0.0f, time_sim* (360.0f / sun.rotation_period));
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_TEXTURE_2D);
+        drawBackground();
 
-        // desenha as órbitas primeiro
+        drawSun(&bodies[0]);
+
         for (int i = 0; i < body_count; i++) {
-            if (bodies[i].orbit_radius > 0) {  // Ignora o Sol
+            if (bodies[i].orbit_radius > 0) {
                 draw_orbit(&bodies[i]);
             }
         }
 
-        // Desenhar cada planeta
-        for (int i = 1; i < body_count; i++)
-        {
-            Position planet_pos = get_position(&bodies[i]);
-            glPushMatrix(); // Abre a matriz do corpo celeste i             
-                glTranslatef(planet_pos.x, planet_pos.y, planet_pos.z); 
-                glRotatef(bodies[i].axial_tilt, 0.0f, 1.0f, 0.0f);
-
-                glEnable(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, bodies[i].texture_id);
-                // desenha 
-                    draw_sphere_lod(bodies[i].radius * radius_scale, 
-                                    planet_pos.x, planet_pos.y, planet_pos.z, 
-                                    time_sim * (360.0f / bodies[i].rotation_period));
-                glBindTexture(GL_TEXTURE_2D, 0);
-                glDisable(GL_TEXTURE_2D);
-
-                if (bodies[i].rings) {
-                    glPushMatrix();
-                        // inclinação do plano do anel
-                        glRotatef(bodies[i].axial_tilt - 180.0f, 1.0f, 0.0f, 0.0f);
-
-                        // rotação ao redor do planeta (opcional, quase imperceptível)
-                        glRotatef(time_sim * 20.0f, 0.0f, 1.0f, 0.0f);
-                        draw_rings(bodies[i].rings, bodies[i].radius);
-                    glPopMatrix();
-                }
-
-                // desenha as luas
-                for(int j = 0; j < bodies[i].moons_count; j++){
-                    Moon moon = bodies[i].moons[j];
-                    Position moon_pos = get_moon_position(&moon);
-
-                    glPushMatrix(); // Abre matriz da lua j
-                        glTranslatef(moon_pos.x, moon_pos.y, moon_pos.z);
-
-                        glEnable(GL_TEXTURE_2D);
-                        glBindTexture(GL_TEXTURE_2D, moon.texture_id);
-                            draw_sphere_lod(moon.radius * radius_scale, 
-                                            moon_pos.x, moon_pos.y, moon_pos.z,
-                                        time_sim* (360.0f / moon.rotation_period));
-                        glBindTexture(GL_TEXTURE_2D, 0);
-                        glDisable(GL_TEXTURE_2D);
-                    glPopMatrix(); // Fecha matriz da lua j
-                }
-
-
-            glPopMatrix(); // Fecha matriz do corpo celeste i
+        for (int i = 1; i < body_count; i++) {
+            drawPlanet(&bodies[i]);
         }
-    glPopMatrix(); //sol
-   
+
+    glPopMatrix();
+
+    // HUD por cima
+    draw_hud(bodies, body_count);
+
     glutSwapBuffers();
 }
 
+// ======================
+// RESHAPE
+// ======================
 void reshape(int w, int h){
-    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+    glViewport(0, 0, w, h);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-   
-   // Aumentamos o limite de visão para -15.0 a 15.0 para caber as body_count esferas
-//    if (w <= h)
-//       glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w,
-//               15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
-//    else
-//       glOrtho(-15.0 * (GLfloat)w / (GLfloat)h,
-//               15.0 * (GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
-    // glOrtho(-2000, 2000, -2000, 2000, -5000, 5000);
-              
+
     gluPerspective(
-        60.0,                 // FOV (campo de visão)
-        (float)w / (float)h,  // proporção da tela
-        1.0,                  // plano próximo
-        20000.0               // plano distante
+        60.0,
+        (float)w / (float)h,
+        1.0,
+        20000.0
     );
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 }
 
+// ======================
+// MAIN
+// ======================
 int main(int argc, char **argv)
 {
-   bodies = load_bodies("configs.json", &body_count);
+    bodies = load_bodies("configs.json", &body_count);
 
-   if (body_count == 0)
-   {
-      printf("Erro: Nenhum planeta lido do JSON");
-      exit(1);
-   }
+    if (body_count == 0) {
+        printf("Erro: Nenhum planeta lido\n");
+        exit(1);
+    }
 
-   glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-   glutInitWindowSize(500, 500);
-   glutInitWindowPosition(100, 100);
-   glutCreateWindow(argv[0]);
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Solar System");
+
+    glewInit();
 
     last_time = glutGet(GLUT_ELAPSED_TIME);
-   init();
+
+    init();
+    init_hud();
     init_camera_controller();
 
-   load_all_textures(bodies, body_count);
+    load_all_textures(bodies, body_count);
 
-   // update
-   glutTimerFunc(0, update_timer, 0);  // Use timer em vez de idle
-   glutDisplayFunc(display);
-   glutReshapeFunc(reshape);
-   glutKeyboardFunc(keyboard);
-   glutMouseFunc(mouse);
-   glutMotionFunc(motion);
-   glutMainLoop();
+    // callbacks
+    glutTimerFunc(0, update_timer, 0);
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouse);
+    glutMotionFunc(motion);
 
-   return 0;
+    glutMainLoop();
+    return 0;
 }
