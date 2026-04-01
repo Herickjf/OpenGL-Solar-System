@@ -209,6 +209,7 @@ void hud_click(int mouse_x, int mouse_y) {
                     cam.lookFrom = (Position){0, 800, 2500};
                     printf("Foco planeta: nenhum\n");
                 } else {
+                    camera_zoom = 1.0f;
                     focused_body = it->body;
                     focused_moon = NULL;
                     printf("Foco planeta: %s\n", it->body->name);
@@ -223,6 +224,7 @@ void hud_click(int mouse_x, int mouse_y) {
                     cam.lookFrom = (Position){0, 800, 2500};
                     printf("Foco lua: nenhuma\n");
                 } else {
+                    camera_zoom = 1.0f;
                     focused_moon = it->moon;
                     moon_parent = it->parent;
                     focused_body = NULL;

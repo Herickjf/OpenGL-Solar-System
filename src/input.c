@@ -224,18 +224,31 @@ void mouse(int button, int state, int x, int y) {
             glutSetCursor(GLUT_CURSOR_NONE);
             hud_click(x, y);
         } 
-        else if (button == 3) {
-            forward = get_forward_vector();
-            cam.lookFrom.x += forward.x * current_scroll_speed;
-            cam.lookFrom.y += forward.y * current_scroll_speed;
-            cam.lookFrom.z += forward.z * current_scroll_speed;
-            update_camera();
-        } else if (button == 4) {
-            forward = get_forward_vector();
-            cam.lookFrom.x -= forward.x * current_scroll_speed;
-            cam.lookFrom.y -= forward.y * current_scroll_speed;
-            cam.lookFrom.z -= forward.z * current_scroll_speed;
-            update_camera();
+        else if (button == 3) { // scroll up
+            if (focused_body || focused_moon) {
+                camera_zoom *= 0.9f;
+                if (camera_zoom < 0.1f) camera_zoom = 0.1f;
+                if (camera_zoom > 20.0f) camera_zoom = 20.0f;
+            } else {
+                forward = get_forward_vector();
+                cam.lookFrom.x += forward.x * current_scroll_speed;
+                cam.lookFrom.y += forward.y * current_scroll_speed;
+                cam.lookFrom.z += forward.z * current_scroll_speed;
+                update_camera();
+            }
+        }
+        else if (button == 4) { // scroll down
+            if (focused_body || focused_moon) {
+                camera_zoom *= 1.1f;
+                if (camera_zoom < 0.1f) camera_zoom = 0.1f;
+                if (camera_zoom > 20.0f) camera_zoom = 20.0f;
+            } else {
+                forward = get_forward_vector();
+                cam.lookFrom.x -= forward.x * current_scroll_speed;
+                cam.lookFrom.y -= forward.y * current_scroll_speed;
+                cam.lookFrom.z -= forward.z * current_scroll_speed;
+                update_camera();
+            }
         }
         glutPostRedisplay();
     } else if (state == GLUT_UP) {

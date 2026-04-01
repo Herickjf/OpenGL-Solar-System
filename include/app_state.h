@@ -8,6 +8,7 @@
 
     extern Camera cam;
     extern int camera_mode;
+    extern float camera_zoom;
 
     extern float time_scale;
 
@@ -18,6 +19,7 @@
     extern Body* focused_body;
     extern Moon* focused_moon;
     extern Body* moon_parent;
+
 
     // tempo pausado
     extern int is_paused;

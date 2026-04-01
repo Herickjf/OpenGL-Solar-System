@@ -44,6 +44,7 @@ Camera cam = {
     {0.0f, 1.0f, 0.0f},
 };
 
+float camera_zoom = 1.0f;
 // foco (GLOBAL)
 Body* focused_body = NULL;
 Moon* focused_moon = NULL;
@@ -90,7 +91,7 @@ void update_camera_follow() {
     if (focused_body) {
         target = get_position(focused_body);
 
-        dist = focused_body->radius * radius_scale * 6.0f;
+        dist = focused_body->radius * radius_scale * 6.0f * camera_zoom;
     }
 
     // ======================
@@ -112,8 +113,8 @@ void update_camera_follow() {
             parent_pos.z + moon_rel.z
         };
 
-        // 🔥 distância proporcional à órbita (muito melhor)
-        dist = focused_moon->orbit_radius * distance_scale * 2.5f;
+        // distância proporcional à órbita (muito melhor)
+        dist = focused_moon->orbit_radius * distance_scale * 2.5f * camera_zoom;
     }
     else {
         return;
