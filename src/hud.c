@@ -9,6 +9,16 @@
 int show_hud = 1;
 
 #define MAX_UI_ITEMS 256
+#define MENU_WIDTH_PCT 0.30f  // 30% da largura da tela
+#define PADDING 15
+#define ROW_HEIGHT 35
+#define BUTTON_MARGIN 5
+
+// Cores (RGBA)
+static float COLOR_BG[]      = {0.05f, 0.05f, 0.07f, 0.85f};
+static float COLOR_ACCENT[]  = {0.2f, 0.5f, 0.9f, 1.0f};
+static float COLOR_BTN[]     = {0.15f, 0.15f, 0.18f, 1.0f};
+static float COLOR_TEXT[]    = {1.0f, 1.0f, 1.0f, 1.0f};
 
 typedef struct {
     float x, y, w, h;
@@ -24,27 +34,31 @@ static int screen_w;
 static int screen_h;
 
 // ======================
-// TEXTO CENTRALIZADO
+// UTILITÁRIOS DE DESENHO
 // ======================
-static void draw_text_center(float cx, float cy, const char* text) {
-    int width = strlen(text) * 8; // approx GLUT_BITMAP_8_BY_13
-    glRasterPos2f(cx - width / 2, cy);
 
+static void draw_rect(float x, float y, float w, float h, float color[4]) {
+    glColor4fv(color);
+    glBegin(GL_QUADS);
+        glVertex2f(x, y);
+        glVertex2f(x + w, y);
+        glVertex2f(x + w, y + h);
+        glVertex2f(x, y + h);
+    glEnd();
+}
+
+static void draw_text_left(float x, float y, const char* text) {
+    glRasterPos2f(x, y);
     for (const char* c = text; *c; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *c);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
     }
 }
 
-// ======================
-// BOTÃO
-// ======================
-static void draw_button(float x, float y, float w, float h, const char* label, int selected) {
-
-    if (selected)
-        glColor3f(0.3f, 0.6f, 1.0f); // azul
-    else
-        glColor3f(0.2f, 0.2f, 0.2f); // cinza
-
+static void draw_modern_button(float x, float y, float w, float h, const char* label, int active) {
+    // Fundo do botão
+    if (active) glColor4f(0.25f, 0.45f, 0.8f, 1.0f);
+    else glColor4fv(COLOR_BTN);
+    
     glBegin(GL_QUADS);
         glVertex2f(x, y);
         glVertex2f(x + w, y);
@@ -52,8 +66,8 @@ static void draw_button(float x, float y, float w, float h, const char* label, i
         glVertex2f(x, y + h);
     glEnd();
 
-    // borda
-    glColor3f(1,1,1);
+    // Borda sutil
+    glColor4f(1, 1, 1, 0.2f);
     glBegin(GL_LINE_LOOP);
         glVertex2f(x, y);
         glVertex2f(x + w, y);
@@ -61,129 +75,109 @@ static void draw_button(float x, float y, float w, float h, const char* label, i
         glVertex2f(x, y + h);
     glEnd();
 
-    // texto
-    glColor3f(1,1,1);
-    draw_text_center(x + w/2, y + h/2 - 4, label);
+    // Texto centralizado no botão
+    glColor4fv(COLOR_TEXT);
+    int txt_w = strlen(label) * 8;
+    draw_text_left(x + (w/2) - (txt_w/2), y + (h/2) - 4, label);
 }
 
 // ======================
-// HUD
+// HUD REFEITA
 // ======================
 void draw_hud(Body* bodies, int count) {
     if (!show_hud) return;
 
     screen_w = glutGet(GLUT_WINDOW_WIDTH);
     screen_h = glutGet(GLUT_WINDOW_HEIGHT);
+    float menu_w = screen_w * MENU_WIDTH_PCT;
+    if (menu_w < 250) menu_w = 250; // Largura mínima
 
+    // Setup 2D
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     gluOrtho2D(0, screen_w, 0, screen_h);
-
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
 
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 1. Fundo do Painel Lateral
+    draw_rect(0, 0, menu_w, screen_h, COLOR_BG);
+    
+    // Borda vertical divisória
+    glColor4f(1, 1, 1, 0.1f);
+    glBegin(GL_LINES);
+        glVertex2f(menu_w, 0);
+        glVertex2f(menu_w, screen_h);
+    glEnd();
 
     ui_count = 0;
+    float curr_y = screen_h - 40;
 
-    // ======================
-    // INFO SUPERIOR
-    // ======================
-    char buffer[128];
+    // 2. Cabeçalho de Status
+    glColor4fv(COLOR_TEXT);
+    char buf[64];
+    sprintf(buf, "SYSTEM STATUS | SCALE: %.1fx", time_scale);
+    draw_text_left(PADDING, curr_y, buf);
+    curr_y -= 40;
 
-    sprintf(buffer, "Press 'H' to toggle HUD, 'P' to pause/resume");
-    draw_text_center(screen_w / 2, screen_h - 20, buffer);
-
-    sprintf(buffer, "Time: %.2fx", time_scale);
-    draw_text_center(screen_w / 2, screen_h - 40, buffer);
-
-    sprintf(buffer, "Cam: (%.0f %.0f %.0f)",
-            cam.lookFrom.x,
-            cam.lookFrom.y,
-            cam.lookFrom.z);
-    draw_text_center(screen_w / 2, screen_h - 60, buffer);
-
-    // ======================
-    // GRID DE BOTÕES
-    // ======================
-    float start_x;
-
-    if(screen_w < 1000) {
-        start_x = 80;
-    }else{
-        start_x = (screen_w / 2) - (5*10 + 6.5*120);
-    }
-    float start_y = screen_h - 120;
-
-    float btn_w = 120;
-    float btn_h = 40;
-
-    float gap_x = 10;
-    float gap_y = 10;
-
-    int cols = (screen_w - 40) / (btn_w + gap_x);
-    if (cols < 1) cols = 1;
-
-    int col = 0;
-    int row = 0;
-
-    // -------- PLANETAS + LUAS --------
+    // 3. Lista de Corpos Celestes
     for (int i = 0; i < count; i++) {
-
         Body* b = &bodies[i];
+        
+        // Nome do Planeta
+        glColor4f(0.7f, 0.8f, 1.0f, 1.0f);
+        draw_text_left(PADDING, curr_y + 10, b->name);
 
-        float x = start_x + col * (btn_w + gap_x);
-        float y = start_y - row * (btn_h + gap_y);
+        // Botões de Ação do Planeta
+        float btn_x = menu_w - 160; 
+        float bw = 70;
+        float bh = 25;
 
-        int selected = (focused_body == b);
+        // Botão FOCAR
+        int is_foc = (focused_body == b);
+        draw_modern_button(btn_x, curr_y, bw, bh, "FOCUS", is_foc);
+        if (ui_count < MAX_UI_ITEMS) 
+            ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, b, NULL, NULL};
 
-        draw_button(x, y, btn_w, btn_h, b->name, selected);
+        // Botão SPLINE (Acompanhar)
+        draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "SPLINE", 0); 
+        // Note: adicione lógica de estado para 'spline_active' se desejar marcar o botão como selecionado
+        
+        curr_y -= (ROW_HEIGHT);
 
-        if (ui_count < MAX_UI_ITEMS) {
-            ui_items[ui_count++] = (UIItem){x,y,btn_w,btn_h,b,NULL,NULL};
-        }
-
-        col++;
-        if (col >= cols) {
-            col = 0;
-            row++;
-        }
-
-        // -------- LUAS --------
+        // 4. Renderizar Luas (Sub-item)
         for (int j = 0; j < b->moons_count; j++) {
-
             Moon* m = &b->moons[j];
+            
+            glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
+            draw_text_left(PADDING + 15, curr_y + 8, "- ");
+            draw_text_left(PADDING + 30, curr_y + 8, m->name);
 
-            x = start_x + col * (btn_w + gap_x);
-            y = start_y - row * (btn_h + gap_y);
+            int is_m_foc = (focused_moon == m);
+            draw_modern_button(btn_x, curr_y, bw, bh, "VIEW", is_m_foc);
+            if (ui_count < MAX_UI_ITEMS) 
+                ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, NULL, m, b};
 
-            selected = (focused_moon == m);
+            draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "PATH", 0);
 
-            draw_button(x, y, btn_w, btn_h, m->name, selected);
-
-            if (ui_count < MAX_UI_ITEMS) {
-                ui_items[ui_count++] = (UIItem){x,y,btn_w,btn_h,NULL,m,b};
-            }
-
-            col++;
-            if (col >= cols) {
-                col = 0;
-                row++;
-            }
+            curr_y -= (ROW_HEIGHT - 5);
         }
+        curr_y -= 15; // Espaço entre grupos
     }
 
+    // Restore state
+    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
-
     glPopMatrix();
-
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
-
     glMatrixMode(GL_MODELVIEW);
 }
 
