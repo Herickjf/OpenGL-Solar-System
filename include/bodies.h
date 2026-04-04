@@ -16,6 +16,8 @@ extern GLUquadric *quad;
 extern float distance_scale;
 extern float radius_scale;
 extern float time_scale;
+extern GLfloat scene_ambient[4];
+extern GLfloat scene_shininess;
 
 extern Stars stars;
 

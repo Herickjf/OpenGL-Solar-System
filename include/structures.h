@@ -16,6 +16,13 @@
     } Rings;
 
     typedef struct {
+        GLfloat diffuse[4];
+        GLfloat specular[4];
+        GLfloat emission[4];
+        GLfloat shininess;
+    } Material;
+
+    typedef struct {
         char* name;
 
         char* texture_path;
@@ -25,6 +32,8 @@
         GLuint texture_id;
         GLuint normal_texture_id;
         GLuint secondary_texture_id;
+
+        Material material;
 
         float radius;
         float orbit_radius;
@@ -46,6 +55,8 @@
         GLuint texture_id;
         GLuint secondary_texture_id;
         GLuint normal_texture_id;
+
+        Material material;
 
         char* orbit_center;
 
