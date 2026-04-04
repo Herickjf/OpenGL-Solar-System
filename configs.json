@@ -39,7 +39,7 @@
     {
       "name": "Mercury",
       "type": "planet",
-      "texture": "./textures/mercury/mercury.jpg",
+      "texture": "./textures/mercury/mercury_.jpg",
       "normal_texture": "./textures/mercury/bump.jpg",
       "orbit_center": "Sun",
       "radius": 10.0,
@@ -124,7 +124,7 @@
     {
       "name": "Mars",
       "type": "planet",
-      "texture": "./textures/mars/color.jpg",
+      "texture": "./textures/mars/mars_.png",
       "normal_texture": "./textures/mars/bump.jpg",
       "orbit_center": "Sun",
       "radius": 15.0,
@@ -185,7 +185,7 @@
     {
       "name": "Jupiter",
       "type": "planet",
-      "texture": "./textures/jupiter/jupiter.jpg",
+      "texture": "./textures/jupiter/jupiter_.png",
       "normal_texture": null,
       "orbit_center": "Sun",
       "radius": 60.0,
@@ -206,7 +206,7 @@
     {
       "name": "Saturn",
       "type": "planet",
-      "texture": "./textures/saturn/saturn.jpg",
+      "texture": "./textures/saturn/saturn_.png",
       "normal_texture": null,
       "orbit_center": "Sun",
       "radius": 45.0,
