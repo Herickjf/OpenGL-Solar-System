@@ -1,7 +1,6 @@
 #include <GL/glut.h>
 #include "draw.h"
 
-// funções externas que você já tem
 extern void draw_sphere_lod(float radius, float x, float y, float z, float rotation);
 extern void draw_stars_background();
 extern void draw_rings(Rings *rings, float planet_radius);

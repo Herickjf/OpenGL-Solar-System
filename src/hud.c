@@ -6,7 +6,8 @@
 #include "app_state.h"
 
 // ======================
-int show_hud = 1;
+extern int show_hud;
+extern CameraMode camera_mode;
 
 #define MAX_UI_ITEMS 256
 #define MENU_WIDTH_PCT 0.30f 
@@ -23,6 +24,7 @@ typedef struct {
     Body* body;
     Moon* moon;
     Body* parent;
+    CameraMode action; // para diferenciar ações (FOCUS, SPLINE, etc.)
 } UIItem;
 
 static UIItem ui_items[MAX_UI_ITEMS];
@@ -123,12 +125,17 @@ void draw_hud(Body* bodies, int count) {
         float bh = 26;
 
         // Botões Planeta
-        int is_foc = (focused_body == b);
-        draw_modern_button(btn_x, curr_y, bw, bh, "FOCUS", is_foc);
-        if (ui_count < MAX_UI_ITEMS) 
-            ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, b, NULL, NULL};
+        // Verifica se o corpo é o focado E se o modo de câmera bate com o botão
+        int is_foc_active = (focused_body == b && camera_mode == CAMERA_FOLLOW);
+        int is_spline_active = (focused_body == b && camera_mode == CAMERA_ORBIT);
 
-        draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "SPLINE", 0);
+        draw_modern_button(btn_x, curr_y, bw, bh, "FOCUS", is_foc_active);
+        if (ui_count < MAX_UI_ITEMS) 
+            ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, b, NULL, NULL, CAMERA_FOLLOW};
+
+        draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "SPLINE", is_spline_active);
+        if(ui_count < MAX_UI_ITEMS) 
+            ui_items[ui_count++] = (UIItem){btn_x + bw + 5, curr_y, bw, bh, b, NULL, NULL, CAMERA_ORBIT};
         
         curr_y -= ROW_HEIGHT;
 
@@ -138,12 +145,18 @@ void draw_hud(Body* bodies, int count) {
             glColor4f(0.6f, 0.6f, 0.6f, 1.0f);
             draw_text(PADDING + 15, curr_y + 8, m->name, GLUT_BITMAP_9_BY_15);
 
-            int is_m_foc = (focused_moon == m);
-            draw_modern_button(btn_x, curr_y, bw, bh, "VIEW", is_m_foc);
-            if (ui_count < MAX_UI_ITEMS) 
-                ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, NULL, m, b};
+            // Botões Lua
+            int is_m_foc_active = (focused_moon == m && camera_mode == CAMERA_FOLLOW);
+            int is_m_path_active = (focused_moon == m && camera_mode == CAMERA_ORBIT);
 
-            draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "PATH", 0);
+            draw_modern_button(btn_x, curr_y, bw, bh, "FOCUS", is_m_foc_active);
+            if (ui_count < MAX_UI_ITEMS) 
+                ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, NULL, m, b, CAMERA_FOLLOW};
+
+            // draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "PATH", is_m_path_active);
+            // if(ui_count < MAX_UI_ITEMS) 
+            //     ui_items[ui_count++] = (UIItem){btn_x + bw + 5, curr_y, bw, bh, NULL, m, b, CAMERA_ORBIT};
+
             curr_y -= ROW_HEIGHT;
         }
         curr_y -= 10;
@@ -151,8 +164,11 @@ void draw_hud(Body* bodies, int count) {
 
     // 4. Rodapé com Dicas (Tamanho 15)
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-    draw_text(PADDING, 50, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
-    draw_text(PADDING, 30, "Press 'P' to pause simulation", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 110, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 80, "Press 'P' to pause simulation", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 50, "Press 'R' to pause the music when a body is in focus", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 20, "Click on buttons to toggle camera focus/mode", GLUT_BITMAP_9_BY_15);
+
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
@@ -169,6 +185,9 @@ void draw_hud(Body* bodies, int count) {
 void hud_click(int mouse_x, int mouse_y) {
     if (!show_hud) return;
 
+    screen_w = glutGet(GLUT_WINDOW_WIDTH);
+    screen_h = glutGet(GLUT_WINDOW_HEIGHT);
+
     int y = screen_h - mouse_y;
 
     for (int i = 0; i < ui_count; i++) {
@@ -179,15 +198,17 @@ void hud_click(int mouse_x, int mouse_y) {
             y >= it->y && y <= it->y + it->h) {
 
             if (it->body) {
-                if(focused_body == it->body) {
+                if(focused_body == it->body && camera_mode == it->action) {
                     focused_body = NULL;
                     cam.lookAt = (Position){0,0,0};
                     cam.lookFrom = (Position){0, 800, 2500};
+                    camera_mode = CAMERA_FREE;
                     printf("Foco planeta: nenhum\n");
                 } else {
                     camera_zoom = 1.0f;
                     focused_body = it->body;
                     focused_moon = NULL;
+                    camera_mode = it->action;
                     printf("Foco planeta: %s\n", it->body->name);
                 }
                 printf("Foco planeta: %s\n", it->body->name);
@@ -198,12 +219,14 @@ void hud_click(int mouse_x, int mouse_y) {
                     focused_moon = NULL;
                     cam.lookAt = (Position){0,0,0};
                     cam.lookFrom = (Position){0, 800, 2500};
+                    camera_mode = CAMERA_FREE;
                     printf("Foco lua: nenhuma\n");
                 } else {
                     camera_zoom = 1.0f;
                     focused_moon = it->moon;
                     moon_parent = it->parent;
                     focused_body = NULL;
+                    camera_mode = it->action;
                     printf("Foco lua: %s\n", it->moon->name);
                 }
                 printf("Foco lua: %s\n", it->moon->name);
