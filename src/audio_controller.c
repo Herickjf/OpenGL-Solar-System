@@ -10,11 +10,12 @@
 // Configurações
 #define MUSIC_VOLUME 19
 #define AUDIO_PATH "audios/"
-#define AUDIO_BUFFER 4096   // equilíbrio: menos crepitação sem pesar
+#define AUDIO_BUFFER 4096 
 
 static Mix_Music* current_music = NULL;
 static char last_body_name[32] = "";
 static Uint32 last_change_time = 0;
+static int is_fading_out = 0;
 
 int pause_music = 0;
 
@@ -88,11 +89,10 @@ void update_audio() {
     // ======================
     // PAUSA
     if (pause_music || !current_target) {
-        if (Mix_PlayingMusic() && !Mix_PausedMusic()) {
+        if (!is_fading_out && Mix_PlayingMusic()) {
             printf("[Audio] Pausando...\n");
-
-            // apenas fadeout (sem pause junto pra evitar glitch)
             Mix_FadeOutMusic(1000);
+            is_fading_out = 1;
         }
         return;
     }
@@ -103,6 +103,10 @@ void update_audio() {
         Mix_ResumeMusic();
     }
 
+    if (is_fading_out) {
+        is_fading_out = 0;
+    }
+    
     // ======================
     // TROCA DE MÚSICA (com proteção anti-spam)
     Uint32 now = SDL_GetTicks();
