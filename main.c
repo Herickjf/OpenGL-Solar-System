@@ -184,6 +184,8 @@ void init(void)
    glClearColor(0,0,0,0);
    glShadeModel(GL_SMOOTH);
     glEnable(GL_NORMALIZE);
+    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
 
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, scene_ambient);
 
