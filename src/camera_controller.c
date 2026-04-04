@@ -1,4 +1,5 @@
 #include <math.h>
+#include <GL/glut.h>
 #include "camera_controller.h"
 #include "calculus.h"
 #include "app_state.h"
@@ -7,6 +8,8 @@ float camera_zoom = 1.0f;
 extern float distance_scale;
 extern float radius_scale;
 CameraMode camera_mode = CAMERA_FREE;
+
+// --- UTILITÁRIOS ---
 
 float lerp(float a, float b, float t) {
     return a + (b - a) * t;
@@ -31,13 +34,14 @@ Position catmull_rom(Position p0, Position p1, Position p2, Position p3, float t
     return res;
 }
 
+// --- LÓGICA PRINCIPAL ---
+
 void update_camera(float delta_time) {
     if (camera_mode == CAMERA_FREE) return;
 
     Position target;
     float dist = 300.0f;
 
-    // 1. Determinar o Alvo (Target) e Distância Base
     if (focused_body) {
         target = get_position(focused_body);
         dist = focused_body->radius * radius_scale * 6.0f * camera_zoom;
@@ -55,46 +59,46 @@ void update_camera(float delta_time) {
         dist = focused_moon->orbit_radius * distance_scale * 2.5f * camera_zoom;
     } else return;
 
-    // 2. Lógica de Movimentação
     Position desired_cam;
 
     if (camera_mode == CAMERA_ORBIT) {
-        // --- LÓGICA DE SPLINE ---
-        // Definimos 4 pontos ao redor do target no plano XZ
+        float orbit_dist = dist * 1.2f;
+
+        // Pontos de controle da Spline
         Position p[4];
-        float orbit_dist = dist * 1.2; // Um pouco mais longe para o modo orbit
-
-        
-        orbit_dist = dist * 1.2f; // Deixamos mais longe para os planetas
-
         p[0] = (Position){ target.x + orbit_dist, target.y, target.z };                
-        p[1] = (Position){ target.x,              target.y, target.z + orbit_dist }; 
+        p[1] = (Position){ target.x,               target.y, target.z + orbit_dist }; 
         p[2] = (Position){ target.x - orbit_dist, target.y, target.z };                
-        p[3] = (Position){ target.x,              target.y, target.z - orbit_dist }; 
-        
+        p[3] = (Position){ target.x,               target.y, target.z - orbit_dist }; 
 
-        // Usamos o tempo global para circular entre os pontos 0, 1, 2, 3
-        float speed = 0.1f; // Velocidade da órbita
+        float speed = 0.1f;
         float global_t = time_sim * speed;
-        
         int i1 = ((int)global_t) % 4;
         int i0 = (i1 + 3) % 4;
         int i2 = (i1 + 1) % 4;
         int i3 = (i1 + 2) % 4;
-        
         float local_t = global_t - (int)global_t;
 
-        desired_cam = catmull_rom(p[i0], p[i1], p[i2], p[i3], local_t);
+        Position raw_spline_pos = catmull_rom(p[i0], p[i1], p[i2], p[i3], local_t);
+
+        // --- CORREÇÃO ANTI-PULSAÇÃO (NORMALIZAÇÃO) ---
+        float dx = raw_spline_pos.x - target.x;
+        float dy = raw_spline_pos.y - target.y;
+        float dz = raw_spline_pos.z - target.z;
+        float current_dist = sqrt(dx*dx + dy*dy + dz*dz);
+
+        // Força a distância a ser sempre orbit_dist
+        desired_cam.x = target.x + (dx / current_dist) * orbit_dist;
+        desired_cam.y = target.y + (dy / current_dist) * orbit_dist;
+        desired_cam.z = target.z + (dz / current_dist) * orbit_dist;
     } 
     else {
-        // --- LÓGICA DE FOLLOW (Original) ---
         float len = sqrt(3.0f);
         Position offset = { dist/len, dist/len, dist/len };
         desired_cam = (Position){ target.x + offset.x, target.y + offset.y, target.z + offset.z };
     }
 
-    // 3. Suavização Final
-    float smooth_pos = (camera_mode == CAMERA_ORBIT) ? 0.05f : 0.08f;
+    float smooth_pos = (camera_mode == CAMERA_ORBIT) ? 0.1f : 0.08f; // Aumentado para 0.1 no orbit para mais firmeza
     cam.lookFrom = lerp_pos(cam.lookFrom, desired_cam, smooth_pos);
     cam.lookAt   = lerp_pos(cam.lookAt, target, 0.12f);
 }
