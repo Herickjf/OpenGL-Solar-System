@@ -6,22 +6,27 @@
     #include <stdlib.h>
     #include "./structures.h"
 
-    extern Camera cam;
-    extern int camera_mode;
-    extern float camera_zoom;
-
+    // --- ESCALAS ---
+    extern float distance_scale;
+    extern float radius_scale;
     extern float time_scale;
 
-    // HUD
-    extern int show_hud;
+    // --- ESTADO DA SIMULAÇÃO ---
+    extern float time_sim;
+    extern int body_count;
+    extern Body *bodies;
 
-    // foco
+    // --- CÂMERA E FOCO ---
+    extern Camera cam;
+    extern float camera_zoom;
     extern Body* focused_body;
     extern Moon* focused_moon;
     extern Body* moon_parent;
+    extern CameraMode camera_mode;
 
 
     // tempo pausado
     extern int is_paused;
+    extern int show_hud;
     
 #endif

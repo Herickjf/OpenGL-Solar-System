@@ -92,5 +92,11 @@
         Position vUp;
     } Camera;
 
+    typedef enum {
+        CAMERA_FREE,
+        CAMERA_FOLLOW,
+        CAMERA_ORBIT
+    } CameraMode;
+
 
 #endif
