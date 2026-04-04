@@ -5,6 +5,8 @@
 #include "app_state.h"
 
 Stars stars; 
+GLfloat scene_ambient[4] = {0.05f, 0.05f, 0.08f, 1.0f};
+GLfloat scene_shininess = 32.0f;
 
 // =====================
 // helpers
@@ -16,6 +18,69 @@ char* get_string(cJSON* obj, const char* key) {
 float get_float(cJSON* obj, const char* key) {
     cJSON* item = cJSON_GetObjectItem(obj, key);
     return item ? (float)item->valuedouble : 0.0f;
+}
+
+static void set_default_material(Material* material) {
+    material->diffuse[0] = 1.0f;
+    material->diffuse[1] = 1.0f;
+    material->diffuse[2] = 1.0f;
+    material->diffuse[3] = 1.0f;
+
+    material->specular[0] = 0.0f;
+    material->specular[1] = 0.0f;
+    material->specular[2] = 0.0f;
+    material->specular[3] = 1.0f;
+
+    material->emission[0] = 0.0f;
+    material->emission[1] = 0.0f;
+    material->emission[2] = 0.0f;
+    material->emission[3] = 1.0f;
+
+    material->shininess = scene_shininess;
+}
+
+static void read_rgba_array(cJSON* obj, const char* key, GLfloat out[4]) {
+    cJSON* array = cJSON_GetObjectItem(obj, key);
+
+    if (!array || !cJSON_IsArray(array)) {
+        return;
+    }
+
+    int size = cJSON_GetArraySize(array);
+    for (int i = 0; i < 4; i++) {
+        cJSON* component = (i < size) ? cJSON_GetArrayItem(array, i) : NULL;
+        if (component) {
+            out[i] = (GLfloat)component->valuedouble;
+        }
+    }
+}
+
+static Material parse_material(cJSON* material_json, const char* type, const char* name) {
+    Material material;
+    int has_emission = 0;
+    set_default_material(&material);
+
+    if (material_json && cJSON_IsObject(material_json)) {
+        read_rgba_array(material_json, "diffuse", material.diffuse);
+        read_rgba_array(material_json, "specular", material.specular);
+        if (cJSON_GetObjectItem(material_json, "emission")) {
+            read_rgba_array(material_json, "emission", material.emission);
+            has_emission = 1;
+        }
+
+        cJSON* shininess = cJSON_GetObjectItem(material_json, "shininess");
+        if (shininess) {
+            material.shininess = (GLfloat)shininess->valuedouble;
+        }
+    }
+
+    if (!has_emission && ((type && strcmp(type, "star") == 0) || (name && strcmp(name, "Sun") == 0))) {
+        for (int i = 0; i < 4; i++) {
+            material.emission[i] = material.diffuse[i];
+        }
+    }
+
+    return material;
 }
 
 // =====================
@@ -98,6 +163,7 @@ Moon parse_moon(cJSON* moon_json) {
     moon.texture_path = get_string(moon_json, "texture");
     moon.normal_texture_path = get_string(moon_json, "normal_texture");
     moon.secondary_texture_path = get_string(moon_json, "secondary_texture");
+    moon.material = parse_material(cJSON_GetObjectItem(moon_json, "material"), NULL, moon.name);
 
     moon.radius = get_float(moon_json, "radius");
     moon.orbit_radius = get_float(moon_json, "orbit_radius");
@@ -131,6 +197,7 @@ Body parse_body(cJSON* body_json) {
     body.texture_path = get_string(body_json, "texture");
     body.secondary_texture_path = get_string(body_json, "secondary_texture");
     body.normal_texture_path = get_string(body_json, "normal_texture");
+    body.material = parse_material(cJSON_GetObjectItem(body_json, "material"), body.type, body.name);
 
     body.orbit_center = get_string(body_json, "orbit_center");
 
@@ -196,10 +263,20 @@ void resolve_hierarchy(Body* bodies, int count) {
 
 void load_scale(cJSON* root) {
     cJSON* scale = cJSON_GetObjectItem(root, "scale");
+    cJSON* lighting = cJSON_GetObjectItem(root, "lighting");
 
     distance_scale = get_float(scale, "distance_scale");
     radius_scale   = get_float(scale, "radius_scale");
     time_scale     = get_float(scale, "time_scale");
+
+    if (lighting && cJSON_IsObject(lighting)) {
+        read_rgba_array(lighting, "ambient", scene_ambient);
+
+        cJSON* shininess = cJSON_GetObjectItem(lighting, "shininess");
+        if (shininess) {
+            scene_shininess = (GLfloat)shininess->valuedouble;
+        }
+    }
 }
 
 Body* load_bodies(const char* path, int* out_count) {

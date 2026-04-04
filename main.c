@@ -178,16 +178,17 @@ void update_timer(int value) {
 // ======================
 void init(void)
 {
-   GLfloat mat_specular[] = {1,1,1,1};
-   GLfloat mat_shininess[] = {50};
-   GLfloat light_position[] = {1,1,1,0};
+    GLfloat light_diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat light_specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
    glClearColor(0,0,0,0);
    glShadeModel(GL_SMOOTH);
+    glEnable(GL_NORMALIZE);
 
-   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-   glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, scene_ambient);
+
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 
    glEnable(GL_LIGHTING);
    glEnable(GL_LIGHT0);
@@ -213,6 +214,9 @@ void display(void)
         cam.lookAt.x,   cam.lookAt.y,   cam.lookAt.z,
         cam.vUp.x,      cam.vUp.y,      cam.vUp.z
     );
+
+    GLfloat light_position[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
     glPushMatrix();
 

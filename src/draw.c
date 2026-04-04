@@ -21,10 +21,27 @@ static void bindTextureSafe(GLuint tex, GLenum unit) {
     glBindTexture(GL_TEXTURE_2D, tex);
 }
 
+static void apply_material(const Material* material) {
+    GLfloat ambient[4] = {
+        material->diffuse[0] * 0.2f,
+        material->diffuse[1] * 0.2f,
+        material->diffuse[2] * 0.2f,
+        material->diffuse[3]
+    };
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material->diffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material->specular);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, material->emission);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material->shininess);
+}
+
 // =========================
 
 void drawSun(Body *sun) {
     float sun_scale = 0.5f;
+
+    apply_material(&sun->material);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, sun->texture_id);
@@ -46,6 +63,8 @@ void drawMoon(Moon *moon) {
 
     glPushMatrix();
         glTranslatef(pos.x, pos.y, pos.z);
+
+        apply_material(&moon->material);
 
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, moon->texture_id);
@@ -69,6 +88,8 @@ void drawPlanet(Body *planet) {
     glPushMatrix();
         glTranslatef(pos.x, pos.y, pos.z);
         glRotatef(planet->axial_tilt, 0.0f, 1.0f, 0.0f);
+
+        apply_material(&planet->material);
 
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, planet->texture_id);
