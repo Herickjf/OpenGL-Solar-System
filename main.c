@@ -1,5 +1,5 @@
 /*
-g++ main.c src/bodies.c src/hud.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW && ./solarSystem 
+g++ main.c src/bodies.c src/hud.c src/audio_controller.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer && ./solarSystem 
 */
 
 #include <GL/glew.h>
@@ -13,7 +13,8 @@ g++ main.c src/bodies.c src/hud.c src/camera_controller.c libs/cJSON.c src/utils
 #include "draw.h"
 #include "hud.h"
 #include "calculus.h"
-#include "camera_controller.h" // Novo include
+#include "camera_controller.h"
+#include "audio_controller.h"
 
 int last_frame_time = 0;
 int target_fps = 30;
@@ -43,6 +44,7 @@ void update_timer(int value) {
 
     // Chamada encapsulada do controlador
     update_camera(delta);
+    update_audio();
 
     if (current_time - last_frame_time >= frame_duration_ms) {
         last_frame_time = current_time;
@@ -123,6 +125,7 @@ int main(int argc, char **argv) {
     init();
     init_hud();
     init_camera_controller();
+    init_audio_controller();
     load_all_textures(bodies, body_count);
 
     glutTimerFunc(0, update_timer, 0);

@@ -18,7 +18,8 @@ Mais do que reproduzir planetas, a ideia foi construir uma pequena experiência 
 O projeto foi desenvolvido em C com OpenGL/GLUT. Em um ambiente com as bibliotecas instaladas, compile com:
 
 ```bash
-g++ main.c src/bodies.c src/hud.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW
+g++ main.c src/bodies.c src/hud.c src/audio_controller.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer && ./solarSystem 
+
 ```
 
 Depois, execute o binário gerado:
@@ -36,6 +37,7 @@ Depois, execute o binário gerado:
 - `H` para mostrar ou ocultar o HUD.
 - `P` para pausar ou retomar a simulação.
 - Clique nos botões do HUD para focar um planeta ou lua.
+- `M` para pausar/retomar a reprodução de músicas.
 
 ## Estrutura do projeto
 

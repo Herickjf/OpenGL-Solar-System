@@ -179,12 +179,17 @@ void keyboard(unsigned char key, int x, int y) {
             break;
         case 'r':
         case 'R':
-            time_scale = 100.0f;
+            time_scale = 32.0f;
             printf("Time scale reset to: %.2fx\n", time_scale);
             break;
         case 'h':
         case 'H':
             show_hud = !show_hud;
+            break;
+
+        case 'm':
+        case 'M':
+            pause_music = !pause_music;
             break;
 
         case 'p':

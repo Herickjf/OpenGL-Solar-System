@@ -28,5 +28,8 @@
     // tempo pausado
     extern int is_paused;
     extern int show_hud;
+
+    // música
+    extern int pause_music;
     
 #endif

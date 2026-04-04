@@ -164,9 +164,10 @@ void draw_hud(Body* bodies, int count) {
 
     // 4. Rodapé com Dicas (Tamanho 15)
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-    draw_text(PADDING, 110, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 100, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
     draw_text(PADDING, 80, "Press 'P' to pause simulation", GLUT_BITMAP_9_BY_15);
-    draw_text(PADDING, 50, "Press 'R' to pause the music when a body is in focus", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 60, "Press 'R' to reset time scale", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 40, "Press 'M' to toggle music reproduction status", GLUT_BITMAP_9_BY_15);
     draw_text(PADDING, 20, "Click on buttons to toggle camera focus/mode", GLUT_BITMAP_9_BY_15);
 
 
@@ -203,15 +204,15 @@ void hud_click(int mouse_x, int mouse_y) {
                     cam.lookAt = (Position){0,0,0};
                     cam.lookFrom = (Position){0, 800, 2500};
                     camera_mode = CAMERA_FREE;
-                    printf("Foco planeta: nenhum\n");
+                    printf("[INTERACTION] Foco planeta: nenhum\n");
                 } else {
                     camera_zoom = 1.0f;
                     focused_body = it->body;
                     focused_moon = NULL;
                     camera_mode = it->action;
-                    printf("Foco planeta: %s\n", it->body->name);
+                    printf("[INTERACTION] Foco planeta: %s\n", it->body->name);
                 }
-                printf("Foco planeta: %s\n", it->body->name);
+                printf("[INTERACTION] Foco planeta: %s\n", it->body->name);
             }
 
             if (it->moon) {
@@ -220,16 +221,16 @@ void hud_click(int mouse_x, int mouse_y) {
                     cam.lookAt = (Position){0,0,0};
                     cam.lookFrom = (Position){0, 800, 2500};
                     camera_mode = CAMERA_FREE;
-                    printf("Foco lua: nenhuma\n");
+                    printf("[INTERACTION] Foco lua: nenhuma\n");
                 } else {
                     camera_zoom = 1.0f;
                     focused_moon = it->moon;
                     moon_parent = it->parent;
                     focused_body = NULL;
                     camera_mode = it->action;
-                    printf("Foco lua: %s\n", it->moon->name);
+                    printf("[INTERACTION] Foco lua: %s\n", it->moon->name);
                 }
-                printf("Foco lua: %s\n", it->moon->name);
+                printf("[INTERACTION] Foco lua: %s\n", it->moon->name);
             }
 
             return;
