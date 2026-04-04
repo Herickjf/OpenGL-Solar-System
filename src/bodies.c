@@ -139,6 +139,9 @@ void load_all_textures(Body* bodies, int count) {
         if (b->normal_texture_path)
             b->normal_texture_id = loadTexture(b->normal_texture_path);
 
+        if (b->specular_texture_path)
+            b->specular_texture_id = loadTexture(b->specular_texture_path);
+
         for (int j = 0; j < b->moons_count; j++) {
             Moon* m = &b->moons[j];
 
@@ -310,7 +313,8 @@ Body* load_bodies(const char* path, int* out_count) {
 }
 
 // =====================
-// draw (mantidas aqui, como você pediu)
+// draw
+
 void draw_stars_background() {
     glPushMatrix();
 
@@ -347,7 +351,7 @@ void draw_orbit(Body* body) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glDisable(GL_LIGHTING);
-    glColor4f(1,1,1,0.1);
+    glColor4f(1,1,1,0.15f);
 
     glBegin(GL_LINE_STRIP);
     for (int i = 0; i <= segments; i++) {

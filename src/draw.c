@@ -36,6 +36,18 @@ static Position normalize_position(Position v) {
     return (Position){v.x / length, v.y / length, v.z / length};
 }
 
+static Position rotate_x_position(Position v, float degrees) {
+    float radians = degrees * (float)M_PI / 180.0f;
+    float cosine = cosf(radians);
+    float sine = sinf(radians);
+
+    return (Position){
+        v.x,
+        v.y * cosine - v.z * sine,
+        v.y * sine + v.z * cosine
+    };
+}
+
 static Position rotate_y_position(Position v, float degrees) {
     float radians = degrees * (float)M_PI / 180.0f;
     float cosine = cosf(radians);
@@ -48,15 +60,16 @@ static Position rotate_y_position(Position v, float degrees) {
     };
 }
 
-static Position rotate_x_position(Position v, float degrees) {
+
+static Position rotate_z_position(Position v, float degrees) {
     float radians = degrees * (float)M_PI / 180.0f;
     float cosine = cosf(radians);
     float sine = sinf(radians);
 
     return (Position){
-        v.x,
-        v.y * cosine - v.z * sine,
-        v.y * sine + v.z * cosine
+        v.x * cosine - v.y * sine,
+        v.x * sine + v.y * cosine,
+        v.z
     };
 }
 
@@ -131,8 +144,11 @@ static void draw_earth_night_overlay(Body *planet, Position pos, float body_spin
     local_light = normalize_position(local_light);
 
     glPushMatrix();
+        glRotatef(planet->axial_tilt, 0.0f, 1.0f, 0.0f);
         glRotatef(body_spin, 0.0f, 1.0f, 0.0f);
-        glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+        glRotatef(-115.0f, 0,1,0);
+        glRotatef(-180.0f, 0,0,1);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -145,7 +161,7 @@ static void draw_earth_night_overlay(Body *planet, Position pos, float body_spin
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
         draw_sphere_mesh_with_night_overlay(
-            planet->radius * radius_scale,
+            planet->radius * radius_scale * 1.01f,
             48,
             24,
             local_light,
@@ -157,6 +173,50 @@ static void draw_earth_night_overlay(Body *planet, Position pos, float body_spin
         glDisable(GL_POLYGON_OFFSET_FILL);
         glDisable(GL_BLEND);
         glEnable(GL_LIGHTING);
+    glPopMatrix();
+}
+
+// =========================
+
+static void draw_specular_overlay(Body *planet, float body_spin) {
+    if (!planet->specular_texture_id) return;
+
+    glPushMatrix();
+
+        glRotatef(planet->axial_tilt, 0.0f, 1.0f, 0.0f);
+        glRotatef(body_spin, 0.0f, 1.0f, 0.0f);
+        glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+        float r = planet->radius * radius_scale * 1.002f;
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, planet->specular_texture_id);
+
+        // 🔥 textura controla intensidade
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+        // 🔥 iluminação desligada (isso resolve seu bug!)
+        glDisable(GL_LIGHTING);
+
+        // 🔥 brilho fake via ADD
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+        // 🔥 usa canal vermelho como intensidade
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+        glDepthMask(GL_FALSE);
+
+        draw_sphere_lod(r, 0,0,0, 0);
+
+        glDepthMask(GL_TRUE);
+
+        glDisable(GL_BLEND);
+        glEnable(GL_LIGHTING);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+
     glPopMatrix();
 }
 
@@ -230,6 +290,10 @@ void drawPlanet(Body *planet) {
         glDisable(GL_TEXTURE_2D);
 
         draw_earth_night_overlay(planet, pos, body_spin);
+
+        if(planet->specular_texture_id) {
+            draw_specular_overlay(planet, body_spin);
+        }
 
         // anéis
         if (planet->rings) {

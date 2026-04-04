@@ -6,8 +6,8 @@
   },
 
   "lighting": {
-    "ambient": [0.05, 0.05, 0.08, 1.0],
-    "shininess": 32.0
+    "ambient": [0.10, 0.10, 0.20, 1.0],
+    "shininess": 40.0
   },
 
   "stars" : {
@@ -30,9 +30,9 @@
       "rotation_period": 609.12,
       "material": {
         "diffuse": [1.0, 0.9, 0.6, 1.0],
-        "specular": [1.0, 0.95, 0.8, 1.0],
-        "emission": [1.0, 0.95, 0.75, 1.0],
-        "shininess": 96.0
+        "specular": [0.0, 0.0, 0.0, 1.0],
+        "emission": [1.0, 0.8, 0.3, 1.0],
+        "shininess": 0.0
       }
     },
 
@@ -51,9 +51,9 @@
       "rotation_period": 1407.6,
       "material": {
         "diffuse": [0.6, 0.6, 0.6, 1.0],
-        "specular": [0.45, 0.45, 0.45, 1.0],
+        "specular": [0.10, 0.10, 0.10, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
-        "shininess": 48.0
+        "shininess": 20.0
       }
     },
 
@@ -73,9 +73,9 @@
       "rotation_period": -5832.5,
       "material": {
         "diffuse": [0.9, 0.8, 0.6, 1.0],
-        "specular": [0.35, 0.35, 0.3, 1.0],
+        "specular": [0.1, 0.1, 0.1, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
-        "shininess": 36.0
+        "shininess": 30.0
       }
     },
 
@@ -85,6 +85,7 @@
       "texture": "./textures/earth/earth.jpg",
       "secondary_texture": "./textures/earth/city_lights.jpg",
       "normal_texture": "./textures/earth/bump.jpg",
+      "specular_texture": "./textures/earth/specular.jpg",
       "orbit_center": "Sun",
       "radius": 20.0,
       "orbit_radius": 800.0,
@@ -94,10 +95,10 @@
       "orbital_period": 365.25,
       "rotation_period": 24,
       "material": {
-        "diffuse": [0.2, 0.4, 1.0, 1.0],
-        "specular": [0.95, 0.95, 0.95, 1.0],
-        "emission": [0.0, 0.0, 0.02, 1.0],
-        "shininess": 80.0
+        "diffuse": [0.2, 0.4, 0.8, 1.0],
+        "specular": [0.3, 0.3, 0.3, 1.0],
+        "emission": [0.0, 0.0, 0.0, 1.0],
+        "shininess": 50.0
       },
       "moons": [
         {
@@ -112,10 +113,10 @@
           "orbital_period": 27.3,
           "rotation_period": 655.7,
           "material": {
-            "diffuse": [0.7, 0.7, 0.7, 1.0],
+            "diffuse": [0.6, 0.6, 0.6, 1.0],
             "specular": [0.3, 0.3, 0.3, 1.0],
             "emission": [0.0, 0.0, 0.0, 1.0],
-            "shininess": 40.0
+            "shininess": 5.0
           }
         }
       ]
@@ -136,9 +137,9 @@
       "rotation_period": 24.6,
       "material": {
         "diffuse": [0.8, 0.3, 0.2, 1.0],
-        "specular": [0.35, 0.2, 0.15, 1.0],
+        "specular": [0.1, 0.1, 0.1, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
-        "shininess": 32.0
+        "shininess": 25.0
       },
       "moons": [
         {
@@ -196,8 +197,8 @@
       "orbital_period": 4331,
       "rotation_period": 9.9,
       "material": {
-        "diffuse": [0.9, 0.7, 0.5, 1.0],
-        "specular": [0.45, 0.4, 0.35, 1.0],
+        "diffuse": [0.7, 0.6, 0.6, 0.5],
+        "specular": [0.2, 0.2, 0.2, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
         "shininess": 40.0
       }
@@ -217,10 +218,10 @@
       "orbital_period": 10747,
       "rotation_period": 10.7,
       "material": {
-        "diffuse": [0.9, 0.8, 0.6, 1.0],
-        "specular": [0.3, 0.3, 0.25, 1.0],
+        "diffuse": [0.7, 0.7, 0.6, 0.8],
+        "specular": [0.2, 0.2, 0.2, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
-        "shininess": 34.0
+        "shininess": 45.0
       },
       "rings": {
         "secondary_texture": "./textures/saturn/saturn_ring_alpha.png",
@@ -243,8 +244,8 @@
       "orbital_period": 30589,
       "rotation_period": -17.2,
       "material": {
-        "diffuse": [0.6, 0.8, 0.9, 1.0],
-        "specular": [0.3, 0.3, 0.4, 1.0],
+        "diffuse": [0.5, 0.7, 0.9, 1.0],
+        "specular": [0.2, 0.2, 0.2, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
         "shininess": 36.0
       }
@@ -265,7 +266,7 @@
       "rotation_period": 16.1,
       "material": {
         "diffuse": [0.2, 0.3, 0.9, 1.0],
-        "specular": [0.45, 0.45, 0.65, 1.0],
+        "specular": [0.2, 0.2, 0.2, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
         "shininess": 42.0
       }
@@ -285,7 +286,7 @@
       "orbital_period": 90560,
       "rotation_period": -153.3,
       "material": {
-        "diffuse": [0.8, 0.7, 0.6, 1.0],
+        "diffuse": [0.6, 0.5, 0.5, 1.0],
         "specular": [0.15, 0.15, 0.15, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
         "shininess": 18.0
