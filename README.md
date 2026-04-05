@@ -80,12 +80,27 @@ No arquivo `configs.json`, a seção `scale` define `distance_scale`, `radius_sc
 
 ```bash
 g++ main.c src/bodies.c src/hud.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW
+g++ main.c src/bodies.c src/hud.c src/audio_controller.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer && ./solarSystem 
+
+```
+
+Depois, execute o binário gerado:
+
+```bash
 ./solarSystem
 ```
 
 ### Windows
 
 Em ambientes tipo **MSYS2 / MinGW**, os nomes das bibliotecas podem diferir (por exemplo `-lopengl32 -lglu32 -lfreeglut -lglew32`). Ajuste os flags conforme o seu kit de desenvolvimento; a lista de arquivos-fonte permanece a mesma.
+- `W`, `A`, `S`, `D` para mover a câmera.
+- `Q` e `E` para descer e subir.
+- Mouse para olhar ao redor.
+- Scroll para aproximar ou afastar.
+- `H` para mostrar ou ocultar o HUD.
+- `P` para pausar ou retomar a simulação.
+- Clique nos botões do HUD para focar um planeta ou lua.
+- `M` para pausar/retomar a reprodução de músicas.
 
 > **Importante:** execute o binário na **raiz do projeto** (onde está `configs.json`), para que os caminhos `./textures/...` sejam resolvidos corretamente.
 

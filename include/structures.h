@@ -51,10 +51,12 @@
         char* texture_path;
         char* secondary_texture_path;
         char* normal_texture_path;
+        char* specular_texture_path;
 
         GLuint texture_id;
         GLuint secondary_texture_id;
         GLuint normal_texture_id;
+        GLuint specular_texture_id;
 
         Material material;
 
@@ -91,6 +93,12 @@
         Position lookAt;
         Position vUp;
     } Camera;
+
+    typedef enum {
+        CAMERA_FREE,
+        CAMERA_FOLLOW,
+        CAMERA_ORBIT
+    } CameraMode;
 
 
 #endif
