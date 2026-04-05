@@ -5,16 +5,17 @@ Disciplina ministrada pelo **Prof. Davi Henrique dos Santos**.
 
 ## Resumo
 
-Este projeto implementa uma cena tridimensional navegável de um sistema solar estilizado em **C**, utilizando **OpenGL** (com **GLUT** para janela e entrada, **GLEW** para extensões e **GLU** para utilitários). A aplicação integra iluminação por material, mapeamento de texturas (incluindo textura secundária para o “lado noturno” da Terra), órbitas elípticas simplificadas, anéis planetários, fundo estelar e uma interface na tela (HUD) para foco rápido em planetas e luas. O objetivo é demonstrar, de forma didática, como conceitos de **transformação geométrica**, **câmera**, **iluminação** e **textura** se combinam numa simulação em tempo real.
+Este projeto implementa uma cena tridimensional navegável de um sistema solar estilizado em **C/C++** (compilado com `g++`), utilizando **OpenGL** com **GLUT** (janela e parte da entrada), **GLEW** (extensões) e **GLU** (utilitários). A cena combina iluminação por material, texturas (incluindo noite na Terra), órbitas elípticas simplificadas, anéis, fundo estelar e um **HUD** para escolher corpos e modos de câmera. O áudio ambiente é tratado à parte com **SDL2** e **SDL2_mixer** (música em MP3 conforme o foco no HUD). O objetivo é mostrar, de forma didática, como transformação, câmera, iluminação, textura e tempo se integram numa simulação interativa.
 
 ---
 
 ## 1. Objetivos
 
-- Aplicar o pipeline gráfico fixo do OpenGL (matrizes de modelo/visualização/projeção, iluminação `GL_LIGHTING`).
-- Modelar corpos celestes com dados externos (**JSON**), permitindo ajuste de escalas, períodos e aparência sem recompilar.
-- Oferecer **interação**: câmera livre, seguimento de corpo (planeta ou lua), pausa e alternância do HUD.
-- Reforçar leitura visual: Sol como fonte de luz aparente (emissão), contrastes de materiais e, na Terra, sobreposição noturna orientada à direção da luz.
+- Aplicar o **pipeline gráfico fixo** do OpenGL (matrizes modelo/visualização/projeção, `GL_LIGHTING`).
+- Descrever corpos celestes em dados externos (**JSON**), ajustando escalas, períodos e aparência sem recompilar.
+- Oferecer **interação**: câmera livre, modos **seguir** e **órbita** (spline) ao redor do alvo, pausa da simulação, controle da escala temporal e HUD opcional.
+- Integrar **multimídia**: trilha por corpo focado (`audios/<Nome>.mp3`, com *fallback*), com pausa independente da simulação.
+- Reforçar leitura visual: Sol com emissão, materiais distintos e sobreposição noturna na Terra orientada à luz.
 
 ---
 
@@ -23,24 +24,24 @@ Este projeto implementa uma cena tridimensional navegável de um sistema solar e
 | Tema | Uso no projeto |
 |------|----------------|
 | **Transformações** | Translação e rotação dos corpos, inclinação orbital, rotação axial e hierarquia planeta–lua. |
-| **Câmera** | Modo livre (WASD, mouse, scroll) e modo “seguir” com interpolação suave até o alvo selecionado. |
+| **Câmera** | Modo livre (WASD, mouse, scroll); modo **seguir** com interpolação (`lerp`); modo **órbita** com posição ao longo de uma spline Catmull–Rom ao redor do alvo. |
 | **Iluminação** | Modelo de Phong via `glMaterial` (ambiente derivado do difuso, difuso, especular, brilho e emissão). |
-| **Texturas** | Mapeamento esférico; texturas normais onde configuradas; textura secundária para noite na Terra e atmosfera no Vênus; anéis com textura dedicada. |
-| **Cena e tempo** | Loop de animação com controle de taxa de quadros; tempo de simulação acumulado para ângulos orbitais e de rotação. |
+| **Texturas** | Mapeamento esférico; normais onde configuradas; textura secundária (noite na Terra, atmosfera em Vênus); anéis com textura dedicada. |
+| **Cena e tempo** | Temporizador GLUT; `time_sim` acumulado com `time_scale` para órbitas e rotações; limite de taxa de redesenho. |
 
 ---
 
 ## 3. Modelo orbital e escalas
 
-As posições orbitais são calculadas em `src/calculus.c` a partir de uma **elipse** em plano XZ, com **excentricidade** e **inclinação** lidas do JSON. O raio instantâneo segue a forma usual da elipse em coordenadas polares:
+As posições orbitais são calculadas em `src/calculus.c` a partir de uma **elipse** no plano XZ, com **excentricidade** e **inclinação** vindas do JSON. O raio instantâneo:
 
 \[
 r = \frac{a\,(1 - e^2)}{1 + e\cos\theta}
 \]
 
-em que \(a\) é o semi-eixo (escalado por `distance_scale`) e \(e\) a excentricidade. **Não** se trata de um integrador N-corpos: as órbitas são **keplerianas simplificadas** para efeito visual e pedagógico.
+em que \(a\) é o semi-eixo (escalado por `distance_scale`) e \(e\) a excentricidade. **Não** há integração N-corpos: trata-se de um modelo **kepleriano simplificado** para visualização.
 
-No arquivo `configs.json`, a seção `scale` define `distance_scale`, `radius_scale` e `time_scale`, permitindo comprimir distâncias e acelerar o tempo sem alterar o código.
+Em `configs.json`, `scale` define `distance_scale`, `radius_scale` e o valor inicial de `time_scale`. Durante a execução, `+`/`-` e `R` alteram `time_scale` no teclado (ver secção 7).
 
 ---
 
@@ -48,43 +49,86 @@ No arquivo `configs.json`, a seção `scale` define `distance_scale`, `radius_sc
 
 | Módulo | Função |
 |--------|--------|
-| `main.c` | Inicialização (GLEW/GLUT), estado global da câmera e simulação, temporizador, atualização de “seguir” alvo e loop de desenho. |
-| `src/bodies.c` | Leitura de `configs.json` com **cJSON**, carregamento de texturas (**stb_image**), montagem da lista de corpos, luas e anéis. |
-| `src/calculus.c` | Posição de planetas e luas em função de `time_sim`. |
-| `src/draw.c` | Desenho do fundo, esferas, órbitas, anéis e sobreposição noturna da Terra (malha esférica com mistura por orientação à luz). |
-| `src/input.c` | Teclado, mouse e scroll. |
-| `src/hud.c` | Painel de seleção e foco em corpos. |
+| `main.c` | `load_bodies`, inicialização GLEW/GLUT, `init`, `init_hud`, `init_camera_controller`, `init_audio_controller`, texturas, temporizador (`time_sim`, `update_camera(delta)`, `update_audio`), `display` e *callbacks* de janela. |
+| `src/camera_controller.c` | `CameraMode`: `CAMERA_FREE`, `CAMERA_FOLLOW`, `CAMERA_ORBIT`. Seguimento com `lerp_pos`; órbita com spline **Catmull–Rom** e normalização de distância ao alvo. |
+| `src/audio_controller.c` | SDL2/SDL2_mixer: reproduz `audios/<nome>.mp3` conforme planeta ou lua focados; *fallback* `audios/default.mp3`; fade in/out; variável global `pause_music`. |
+| `src/input.c` | Teclado, mouse, scroll; `init_camera_controller` alinha *yaw*/*pitch* ao `lookAt` inicial; em modo livre, `update_camera()` (sem argumentos, neste arquivo) recalcula `lookAt`; no temporizador do `main`, chama-se `update_camera(delta)` de `camera_controller.c` — são duas funções distintas. |
+| `src/bodies.c` | Leitura de `configs.json` com **cJSON** (`libs/cJSON.h`), texturas com **stb_image** (`libs/stb_image.h` + `src/stb_image.c`), parse de corpos, luas e anéis; desenho de **estrelas de fundo**, **órbitas**, malha esférica LOD e **anéis** (`draw_stars_background`, `draw_orbit`, `draw_sphere_lod`, `draw_rings` — declaradas em `include/bodies.h`). |
+| `src/calculus.c` | Posições de planetas e luas em função de `time_sim`. |
+| `src/draw.c` | `drawBackground` (delega ao fundo em `bodies.c`), **Sol**, **luas** e **planetas**; sobreposição noturna na Terra. |
+| `src/hud.c` | Menu lateral: por **planeta**, botões **FOCUS** (seguir) e **SPLINE** (órbita); por **lua**, apenas **FOCUS** (botão de órbita para lua está comentado no código). |
 | `src/utils.c` | Utilitários compartilhados. |
-| `include/*.h` | Tipos (`Body`, `Moon`, `Rings`, `Camera`, `Material`, etc.) e declarações. |
+| `src/stb_image.c` | Implementação do carregador de imagens. |
+| `libs/cJSON.c` | Parser JSON (cabeçalho em `libs/cJSON.h`). |
+| `include/structures.h` | Tipos `Body`, `Moon`, `Rings`, `Camera`, `Material`, `CameraMode`, etc. |
+| `include/app_state.h` | Declarações `extern` do estado global (escalas, foco, pausa, HUD, música). |
+| `include/camera_controller.h` / `include/audio_controller.h` | API dos controladores correspondentes. |
+| `include/bodies.h`, `draw.h`, `hud.h`, `input.h`, `calculus.h`, `utils.h` | Declarações das rotinas de carga de cena, desenho de HUD, entrada, cinemática e utilitários. |
 
-**Dados da cena:** `configs.json` descreve o Sol, Mercúrio, Vênus, Terra (e Lua), Marte (Fobos e Deimos), Júpiter, Saturno (anéis), Urano, Netuno e Plutão, além da textura do campo de estrelas e parâmetros globais de iluminação.
+**Dados da cena:** `configs.json` descreve o Sol, Mercúrio, Vênus, Terra (e Lua), Marte (Fobos e Deimos), Júpiter, Saturno (anéis), Urano, Netuno e Plutão, além do fundo de estrelas e iluminação global.
 
-**Bibliotecas de terceiros (incluídas no repositório):**
+**Bibliotecas de terceiros no repositório:**
 
 - [cJSON](https://github.com/DaveGamble/cJSON) — parsing JSON.
-- [stb_image](https://github.com/nothings/stb) — carregamento de imagens para texturas.
+- [stb_image](https://github.com/nothings/stb) — imagens para texturas (`libs/stb_image.h`).
+
+**Dependências de sistema:** SDL2 e SDL2_mixer (ligadas na compilação; usadas apenas para áudio, em paralelo ao GLUT).
+
+### Fluxo de execução (visão geral)
+
+```mermaid
+flowchart LR
+  main_init[main_init]
+  timer[glut_timer]
+  cam[camera_controller]
+  aud[audio_controller]
+  disp[display]
+  main_init --> timer
+  timer --> cam
+  timer --> aud
+  timer --> disp
+  disp --> scene[draw_cena_e_hud]
+```
 
 ---
 
 ## 5. Requisitos
 
-- Compilador **C/C++** (`g++` ou compatível).
-- **OpenGL**, **GLU**, **GLUT** (ou FreeGLUT) e **GLEW** instalados e visíveis ao linker.
-- Execução a partir do diretório onde estão `configs.json` e a pasta `textures/` (caminhos relativos no JSON).
+- Compilador **C++** (`g++` ou compatível; o projeto usa extensões comuns de compilação mista C/C++).
+- **OpenGL**, **GLU**, **GLUT** (ou FreeGLUT) e **GLEW**.
+- **SDL2** e **SDL2_mixer** (suporte a MP3 conforme a instalação).
+- Execução na **raiz do projeto**, com `configs.json`, pasta `textures/` e, para áudio, pasta `audios/` com arquivos `.mp3` (ou pelo menos `default.mp3`).
+
+### WSL / Ubuntu (instalação de dependências)
+
+No **WSL2** com Ubuntu (ou Debian derivado), instale os pacotes de desenvolvimento antes de compilar. Exemplo com `apt`:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential \
+  libgl1-mesa-dev libglu1-mesa-dev \
+  freeglut3-dev libglew-dev \
+  libsdl2-dev libsdl2-mixer-dev
+```
+
+- **Compilador:** `build-essential` fornece o `g++`.
+- **OpenGL / GLU / janela:** `libgl1-mesa-dev`, `libglu1-mesa-dev`, `freeglut3-dev` (o *linker* usa `-lGL -lGLU -lglut`).
+- **GLEW:** `libglew-dev`.
+- **Áudio:** `libsdl2-dev` e `libsdl2-mixer-dev` (MP3 costuma funcionar com as dependências que o mixer puxa; se faltar *codec*, instale também `libmpg123-dev`).
+
+Para **abrir a janela gráfica** a partir do WSL, use **WSLg** (Windows 11) ou um servidor X no Windows; sem isso o binário compila, mas o GLUT pode falhar ao criar a janela.
 
 ---
 
 ## 6. Compilação e execução
 
-### Linux (exemplo típico)
+Comando alinhado ao comentário em `main.c`:
 
 ```bash
-g++ main.c src/bodies.c src/hud.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW
-g++ main.c src/bodies.c src/hud.c src/audio_controller.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer && ./solarSystem 
-
+g++ main.c src/bodies.c src/hud.c src/audio_controller.c src/camera_controller.c libs/cJSON.c src/utils.c src/calculus.c src/input.c src/draw.c src/stb_image.c -Iinclude -o solarSystem -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer
 ```
 
-Depois, execute o binário gerado:
+Execução (Linux/macOS):
 
 ```bash
 ./solarSystem
@@ -92,17 +136,9 @@ Depois, execute o binário gerado:
 
 ### Windows
 
-Em ambientes tipo **MSYS2 / MinGW**, os nomes das bibliotecas podem diferir (por exemplo `-lopengl32 -lglu32 -lfreeglut -lglew32`). Ajuste os flags conforme o seu kit de desenvolvimento; a lista de arquivos-fonte permanece a mesma.
-- `W`, `A`, `S`, `D` para mover a câmera.
-- `Q` e `E` para descer e subir.
-- Mouse para olhar ao redor.
-- Scroll para aproximar ou afastar.
-- `H` para mostrar ou ocultar o HUD.
-- `P` para pausar ou retomar a simulação.
-- Clique nos botões do HUD para focar um planeta ou lua.
-- `M` para pausar/retomar a reprodução de músicas.
+Em **MSYS2 / MinGW**, **vcpkg** ou kits semelhantes, os nomes das bibliotecas e flags de include podem diferir (por exemplo variantes `-lopengl32`, `-lglu32`, `-lfreeglut`, `-lglew32`, `-lSDL2`, `-lSDL2_mixer`). Mantenha a **mesma lista de arquivos `.c`** e ajuste `-I`/`-L` ao seu ambiente.
 
-> **Importante:** execute o binário na **raiz do projeto** (onde está `configs.json`), para que os caminhos `./textures/...` sejam resolvidos corretamente.
+> **Importante:** execute o binário no diretório que contém `configs.json`, para que `./textures/...` e `./audios/...` sejam encontrados.
 
 ---
 
@@ -110,13 +146,24 @@ Em ambientes tipo **MSYS2 / MinGW**, os nomes das bibliotecas podem diferir (por
 
 | Entrada | Ação |
 |---------|------|
-| `W` `A` `S` `D` | Deslocar a câmera no plano horizontal. |
+| `W` `A` `S` `D` | Deslocar a câmera no plano horizontal (modo livre). |
 | `Q` / `E` | Descer / subir. |
-| Mouse | Orientar a visão. |
-| Scroll | Aproximar ou afastar (zoom). |
+| `Espaço` | Subir (mesmo efeito que `E` no código). |
+| Mouse (arrastar) | Orientar a visão (modo livre). |
+| Scroll | Aproximar ou afastar (*zoom*). |
+| `Shift` (segurar) | Movimento e scroll mais rápidos. |
+| `Ctrl` (segurar) | Movimento mais lento. |
 | `H` | Mostrar ou ocultar o HUD. |
-| `P` | Pausar ou retomar a simulação. |
-| Clique no HUD | Focar planeta ou lua indicado. |
+| `P` | Pausar ou retomar a simulação (ao pausar, `time_scale` vai a 0 e é restaurado ao retomar). |
+| `+` ou `=` | Dobrar `time_scale` (até limite interno). |
+| `-` | Reduzir `time_scale` para metade. |
+| `R` | Repor `time_scale` para `32.0`. |
+| `M` | Pausar ou retomar apenas a música (a simulação pode continuar). |
+| `Esc` | Sair. |
+| HUD — **FOCUS** | Focar planeta ou lua com câmera **seguir** (`CAMERA_FOLLOW`). |
+| HUD — **SPLINE** | Focar **planeta** com câmera em **órbita** (`CAMERA_ORBIT`). |
+| Clicar de novo no **mesmo botão** (planeta já focado naquele modo) | Remove o foco e volta a `CAMERA_FREE` (`src/hud.c`). |
+| Clicar de novo em **FOCUS** na **mesma lua** | Remove o foco da lua (só existe botão FOCUS para luas). |
 
 ---
 
@@ -126,22 +173,24 @@ Em ambientes tipo **MSYS2 / MinGW**, os nomes das bibliotecas podem diferir (por
 OpenGL-Solar-System/
 ├── main.c
 ├── configs.json
-├── include/          # cabeçalhos (.h)
+├── include/          # cabeçalhos (.h), estado e API
 ├── src/              # implementação (.c)
-├── libs/             # cJSON e stb_image
-└── textures/         # assets referenciados pelo JSON
+├── libs/             # cJSON (c/h), stb_image.h
+├── textures/         # texturas referenciadas pelo JSON
+└── audios/           # MP3 por corpo (ex.: Sun.mp3) e default.mp3
 ```
 
 ---
 
 ## 9. Limitações e extensões possíveis
 
-- O modelo é **visual e didático**, não astronômico: massas, perturbações e inclinações reais estão simplificadas ou ausentes.
-- Iluminação e sombras seguem o modelo clássico do OpenGL imediato; não há sombras projetadas nem *deferred shading*.
-- Como evolução natural do trabalho: shader programs modernos (GLSL), *skybox* explícito, ou leitura de efemérides mais realistas.
+- Modelo **visual e didático**, não astronômico: massas, perturbações e efemérides reais não são simuladas.
+- Iluminação no estilo OpenGL imediato, **sem** sombras projetadas nem *deferred shading*.
+- Áudio depende de **SDL2_mixer** e de arquivos **MP3**; a janela gráfica continua no GLUT.
+- Evoluções naturais: shaders GLSL, *skybox* explícito, sombras ou dados orbitais mais realistas.
 
 ---
 
 ## 10. Conclusão
 
-O projeto funciona como uma **ponte entre teoria e prática**: o código permanece legível o suficiente para localizar cada ideia de computação gráfica (transformação, material, textura, câmera, tempo), enquanto a cena final oferece uma experiência coerente de **sistema solar interativo** adequada a um trabalho de Introdução à Computação Gráfica.
+O trabalho articula teoria de computação gráfica com uma aplicação jogável: configuração por JSON, câmera em três modos, cena iluminada com texturas e um reforço de imersão por áudio. O código permanece organizado por responsabilidades (`draw`, `calculus`, controladores, HUD), o que facilita localizar cada conceito ensinado na disciplina.
