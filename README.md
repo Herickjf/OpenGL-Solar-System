@@ -4,6 +4,27 @@
 Disciplina ministrada pelo **Prof. Davi Henrique dos Santos**.  
 Alunos: Herick, Lusi, Rafael
 
+## Sumário
+
+- [1. Resumo](#resumo)
+- [2. Figura do Programa](#figura-do-programa)
+- [3. Objetivos](#1-objetivos)
+- [4. Conceitos Utilizados](#2-conceitos-de-computação-gráfica-utilizados)
+- [5. Modelo Orbital e Escalas](#3-modelo-orbital-e-escalas)
+- [6. Arquitetura do Software](#4-arquitetura-do-software)
+- [7. Fluxo de Execução](#fluxo-de-execução-visão-geral)
+- [8. Requisitos](#5-requisitos)
+- [9. Compilação e Execução](#6-compilação-e-execução)
+- [10. Controles](#7-controles)
+- [11. Estrutura de Diretórios](#8-estrutura-de-diretórios-visão-geral)
+- [12. Limitações e Extensões Possíveis](#9-limitações-e-extensões-possíveis)
+- [13. Conclusão](#10-conclusão)
+- [14. Problemas Encontrados](#11-relatório-principais-problemas-encontrados)
+- [15. O que pode ser melhorado](#12-relatório-o-que-pode-ser-melhorado-e-como)
+- [16. Contribuição dos Integrantes](#13-relatório-contribuições-dos-integrantes)
+
+---
+
 ## Resumo
 
 Este projeto implementa uma cena tridimensional navegável de um sistema solar estilizado em **C/C++** (compilado com `g++`), utilizando **OpenGL** com **GLUT** (janela e parte da entrada), **GLEW** (extensões) e **GLU** (utilitários). A cena combina iluminação por material, texturas (incluindo noite na Terra), órbitas elípticas simplificadas, anéis, fundo estelar e um **HUD** para escolher corpos e modos de câmera. O áudio ambiente é tratado à parte com **SDL2** e **SDL2_mixer** (música em MP3 conforme o foco no HUD). O objetivo é mostrar, de forma didática, como transformação, câmera, iluminação, textura e tempo se integram numa simulação interativa.
