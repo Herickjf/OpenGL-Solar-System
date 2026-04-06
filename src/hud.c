@@ -1,3 +1,7 @@
+/*
+ * hud.c — Painel lateral: por planeta, botões FOCUS (seguir) e SPLINE (órbita); por lua, só FOCUS.
+ * Regista retângulos clicáveis (UIItem) e aplica foco/camera_mode em hud_click.
+ */
 #include <GL/glut.h>
 #include <stdio.h>
 #include <string.h>

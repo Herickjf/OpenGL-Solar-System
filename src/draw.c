@@ -1,3 +1,7 @@
+/*
+ * draw.c — Desenho do Sol, planetas e luas com texturas e materiais; Terra com sobreposição noturna.
+ * O fundo de estrelas e as órbitas estão implementados em bodies.c.
+ */
 #include <GL/glut.h>
 #include <math.h>
 #include <string.h>
@@ -10,6 +14,7 @@ extern Position get_position(Body *body);
 extern Position get_moon_position(Moon *moon);
 
 // =========================
+// Fundo e utilitários locais
 
 void drawBackground() {
     draw_stars_background();

@@ -1,3 +1,4 @@
+/* Estruturas da simulação: anéis, materiais, luas, corpos (Body), fundo de estrelas, câmera e CameraMode. */
 #ifndef _STRUCTURES_H_
 #define _STRUCTURES_H_
 

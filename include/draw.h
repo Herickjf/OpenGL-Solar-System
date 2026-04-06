@@ -1,3 +1,4 @@
+/* Desenho de fundo, Sol, planetas e luas; materiais e camada noturna na Terra. */
 #ifndef DRAW_H
 #define DRAW_H
 

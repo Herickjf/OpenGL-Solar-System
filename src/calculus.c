@@ -1,7 +1,12 @@
+/*
+ * calculus.c — Posição 3D dos corpos em órbita elíptica simplificada (excentricidade, inclinação)
+ * em função do tempo simulado time_sim e de distance_scale.
+ */
 #include <math.h>
 #include "calculus.h"
 
 // =========================
+// Planetas
 
 Position get_position(Body* body) {
     // Sol fica parado
@@ -32,6 +37,7 @@ Position get_position(Body* body) {
 }
 
 // =========================
+// Luas (órbita relativa; posição absoluta combina-se com o planeta em draw/câmera)
 
 Position get_moon_position(Moon* moon) {
     float angle = time_sim * (2.0f * M_PI / moon->orbital_period);

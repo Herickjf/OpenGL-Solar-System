@@ -1,3 +1,4 @@
+/* Teclado, rato e scroll; init_camera_controller alinha câmera livre ao lookAt inicial. */
 #ifndef INPUT_H
 #define INPUT_H
 

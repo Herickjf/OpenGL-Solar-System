@@ -1,3 +1,7 @@
+/*
+ * input.c — Câmera livre (WASD, pitch/yaw com rato), scroll, teclas de tempo/HUD/música/sair.
+ * update_camera() aqui recalcula apenas lookAt no modo livre; update_camera(delta) está em camera_controller.c.
+ */
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +12,7 @@
 #include "structures.h"
 #include "hud.h"
 
-// Variáveis de estado do mouse
+// Estado do rato (arrastar para olhar em volta)
 static int is_dragging = 0;
 static int last_mouse_x = 0;
 static int last_mouse_y = 0;

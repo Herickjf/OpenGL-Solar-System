@@ -1,3 +1,4 @@
+/* Menu 2D (GLUT): lista de corpos, botões FOCUS/SPLINE e deteção de clique (hud_click). */
 #ifndef HUD_H
 #define HUD_H
 

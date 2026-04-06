@@ -1,3 +1,4 @@
+/* Cinemática orbital simplificada: elipse com excentricidade e inclinação. */
 #ifndef __CALCULUS_H__
 #define __CALCULUS_H__
 

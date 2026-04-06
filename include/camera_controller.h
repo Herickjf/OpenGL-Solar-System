@@ -1,3 +1,4 @@
+/* Câmera seguir / órbita (spline); update_camera(delta) chamado pelo temporizador em main.c. */
 #ifndef CAMERA_CONTROLLER_H
 #define CAMERA_CONTROLLER_H
 

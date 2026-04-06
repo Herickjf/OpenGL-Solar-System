@@ -1,4 +1,5 @@
 /* stb_image - v2.30 - public domain image loader - http://nothings.org/stb
+   (Projeto Solar System: uma única compilação com STB_IMAGE_IMPLEMENTATION em src/stb_image.c.)
                                   no warranty implied; use at your own risk
 
    Do this:

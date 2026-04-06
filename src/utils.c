@@ -1,3 +1,6 @@
+/*
+ * utils.c — Leitura de arquivo binário completo para um buffer terminado em '\0'.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include "utils.h"

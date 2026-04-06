@@ -1,3 +1,7 @@
+/*
+ * bodies.c — Leitura de configs.json (cJSON), texturas via stb_image e geometria auxiliar da cena:
+ * fundo de estrelas, traço das órbitas, esfera com LOD e anéis planetários.
+ */
 #include "bodies.h"
 #include "../libs/stb_image.h"
 #include "utils.h"
@@ -9,7 +13,7 @@ GLfloat scene_ambient[4] = {0.05f, 0.05f, 0.08f, 1.0f};
 GLfloat scene_shininess = 32.0f;
 
 // =====================
-// helpers
+// Funções auxiliares (JSON e materiais)
 char* get_string(cJSON* obj, const char* key) {
     cJSON* item = cJSON_GetObjectItem(obj, key);
     return (item && cJSON_IsString(item)) ? strdup(item->valuestring) : NULL;
@@ -84,7 +88,7 @@ static Material parse_material(cJSON* material_json, const char* type, const cha
 }
 
 // =====================
-// texture
+// Texturas (carregamento OpenGL)
 GLuint loadTexture(const char *filename) {
     int width, height, nrChannels;
 
@@ -158,7 +162,7 @@ void load_all_textures(Body* bodies, int count) {
 }
 
 // =====================
-// parsing
+// Parse JSON -> structs (lua, anel, planeta)
 Moon parse_moon(cJSON* moon_json) {
     Moon moon;
 
@@ -235,7 +239,7 @@ Body parse_body(cJSON* body_json) {
 }
 
 // =====================
-// utils
+// Grafo da cena (orbit_center -> parent) e load_bodies
 Body* find_body_by_name(Body* bodies, int count, const char* name) {
     for (int i = 0; i < count; i++) {
         if (strcmp(bodies[i].name, name) == 0)
@@ -313,7 +317,7 @@ Body* load_bodies(const char* path, int* out_count) {
 }
 
 // =====================
-// draw
+// Desenho auxiliar: estrelas, órbitas, esfera LOD, anéis
 
 void draw_stars_background() {
     glPushMatrix();

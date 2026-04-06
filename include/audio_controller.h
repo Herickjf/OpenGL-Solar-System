@@ -1,3 +1,4 @@
+/* SDL2_mixer: músicas em audios/<Nome>.mp3; init, update por foco, close. */
 #ifndef AUDIO_CONTROLLER_H
 #define AUDIO_CONTROLLER_H
 

@@ -1,3 +1,4 @@
+/* Utilitários simples (ex.: leitura de arquivo binário para buffer em memória). */
 #ifndef UTILS_H
 #define UTILS_H
 

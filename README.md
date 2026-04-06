@@ -1,11 +1,27 @@
 # Sistema Solar em OpenGL
 
 **Trabalho final — Introdução à Computação Gráfica**  
-Disciplina ministrada pelo **Prof. Davi Henrique dos Santos**.
+Disciplina ministrada pelo **Prof. Davi Henrique dos Santos**.  
+Alunos: Herick, Lusi, Rafael
 
 ## Resumo
 
 Este projeto implementa uma cena tridimensional navegável de um sistema solar estilizado em **C/C++** (compilado com `g++`), utilizando **OpenGL** com **GLUT** (janela e parte da entrada), **GLEW** (extensões) e **GLU** (utilitários). A cena combina iluminação por material, texturas (incluindo noite na Terra), órbitas elípticas simplificadas, anéis, fundo estelar e um **HUD** para escolher corpos e modos de câmera. O áudio ambiente é tratado à parte com **SDL2** e **SDL2_mixer** (música em MP3 conforme o foco no HUD). O objetivo é mostrar, de forma didática, como transformação, câmera, iluminação, textura e tempo se integram numa simulação interativa.
+
+### Figura do programa
+
+![Captura do sistema solar em execução](docs/captura.png)
+
+### Em resumo: o que o programa faz
+
+- Carrega a cena a partir de `configs.json` (corpos, escalas, materiais, caminhos de texturas).
+- Abre uma janela com **GLUT**, inicializa **GLEW** e configura iluminação e *depth* no **OpenGL** imediato.
+- Entra em um **loop por temporizador**: avança o tempo simulado (`time_sim` × `time_scale`), atualiza a câmera (seguir/órbita) e o áudio conforme o foco no HUD, e redesenha a cena a uma taxa alvo.
+- Desenha fundo estelar, Sol, órbitas, planetas (com luas e anéis onde definidos) e o **HUD**; o **SDL2_mixer** toca músicas em `audios/` conforme o corpo selecionado.
+
+**Compilação, execução e dependências detalhadas:** seções **5** e **6** (incluindo pacotes `apt` para WSL/Ubuntu).
+
+**Resumo de dependências:** `g++`, OpenGL, GLU, GLUT (ou FreeGLUT), GLEW, SDL2 e SDL2_mixer.
 
 ---
 
@@ -177,7 +193,8 @@ OpenGL-Solar-System/
 ├── src/              # implementação (.c)
 ├── libs/             # cJSON (c/h), stb_image.h
 ├── textures/         # texturas referenciadas pelo JSON
-└── audios/           # MP3 por corpo (ex.: Sun.mp3) e default.mp3
+├── audios/           # MP3 por corpo (ex.: Sun.mp3) e default.mp3
+└── docs/             # relatório: captura (captura.png) e materiais opcionais
 ```
 
 ---
@@ -194,3 +211,38 @@ OpenGL-Solar-System/
 ## 10. Conclusão
 
 O trabalho articula teoria de computação gráfica com uma aplicação jogável: configuração por JSON, câmera em três modos, cena iluminada com texturas e um reforço de imersão por áudio. O código permanece organizado por responsabilidades (`draw`, `calculus`, controladores, HUD), o que facilita localizar cada conceito ensinado na disciplina.
+
+---
+
+## 11. Relatório: principais problemas encontrados
+
+Lista **modelo** (substitua ou complemente com os problemas reais que o grupo enfrentou durante o desenvolvimento):
+
+- **WSL sem ambiente gráfico:** o programa compila, mas o GLUT falha ao criar a janela se não houver **WSLg** (Windows 11) ou um servidor X no Windows.
+- **Bibliotecas não encontradas no *link*:** erros como `cannot find -lglut` ou `-lGLEW` indicam pacotes `-dev` faltando ou caminho de biblioteca incorreto.
+- **Caminhos relativos:** executar o binário fora da pasta raiz faz `configs.json`, `textures/` ou `audios/` não serem encontrados.
+- **Áudio MP3:** o SDL2_mixer depende de *plugins* ou bibliotecas de decodificação; em alguns sistemas é necessário instalar `libmpg123-dev` (ou equivalente).
+- **Mistura GLUT + SDL:** dois subsistemas distintos (janela vs. áudio); confusão na ordem de inicialização ou em *threads* pode causar comportamento estranho (neste projeto o áudio é atualizado no temporizador do GLUT).
+
+---
+
+## 12. Relatório: o que pode ser melhorado (e como)
+
+| Melhoria | Como |
+|----------|------|
+| **Pipeline moderno** | Migrar para OpenGL *core profile* com **GLSL**, VBOs/VAOs e um único *context*; reduz dependência de `glBegin`/`glEnd` onde ainda existirem. |
+| **Sombras** | Introduzir *shadow mapping* ou sombras projetadas em shader; exige passos de renderização extras e matrizes de luz. |
+| **Organização do desenho** | Parte da geometria auxiliar está em `bodies.c`; extrair para um módulo dedicado (ex. `scene_draw.c`) deixa `bodies.c` focado em dados e carga. |
+| **Órbita da câmera nas luas** | O segundo botão (órbita) para luas está comentado em `src/hud.c`; reativar e testar com `CAMERA_ORBIT` no clique da lua. |
+| **Build** | Adicionar **CMake** ou **Makefile** com alvos `debug`/`release` e detecção de SDL2/GLEW via `pkg-config`. |
+| **Qualidade de código** | Remover `printf` duplicados no tratamento de clique do HUD (trecho após focar planeta/lua em `src/hud.c`) e unificar mensagens de *log*. |
+
+---
+
+## 13. Relatório: contribuições dos integrantes
+
+| Nome | Contribuições |
+|------|----------------|
+| **Rafael de França** | Cena e dados (`configs.json`); desenho 3D — Sol, planetas e luas (`src/draw.c`); primitivas auxiliares de desenho — estrelas, órbitas, esfera LOD, anéis (`src/bodies.c`); câmera livre e entrada (`src/input.c`); documentação e relatório (`README.md`, comentários no código). |
+| **Herick José** | Geometria e órbitas (`src/calculus.c`); carga da cena e texturas (`src/bodies.c` — JSON, `load_bodies`, texturas); loop principal e inicialização OpenGL/GLUT/GLEW (`main.c`); estado global e tipos (`include/app_state.h`, `include/structures.h`). |
+| **Luis Gustavo** | Geometria e órbitas (`src/calculus.c`); câmera seguir e órbita por spline (`src/camera_controller.c`); HUD e foco (`src/hud.c`); áudio com SDL2_mixer (`src/audio_controller.c`). |

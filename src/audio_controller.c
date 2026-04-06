@@ -1,3 +1,7 @@
+/*
+ * audio_controller.c — SDL2_mixer: toca audios/<NomeCorpo>.mp3 ao focar planeta ou lua; fallback default.mp3;
+ * pausa com pause_music, entradas/saídas com fade.
+ */
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <string.h>
@@ -7,7 +11,7 @@
 #include "app_state.h"
 
 // ======================
-// Configurações
+// Parâmetros fixos
 #define MUSIC_VOLUME 19
 #define AUDIO_PATH "audios/"
 #define AUDIO_BUFFER 4096 

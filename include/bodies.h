@@ -1,3 +1,4 @@
+/* Carga de configs.json (cJSON), texturas (stb) e desenho auxiliar: estrelas, órbitas, esfera LOD, anéis. */
 #ifndef BODIES_H
 #define BODIES_H
 

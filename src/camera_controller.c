@@ -1,3 +1,7 @@
+/*
+ * camera_controller.c — Modos CAMERA_FOLLOW (interpolação para trás do alvo) e CAMERA_ORBIT
+ * (posição ao longo de spline Catmull–Rom em torno do alvo). CAMERA_FREE não altera a câmera aqui.
+ */
 #include <math.h>
 #include <GL/glut.h>
 #include "camera_controller.h"
@@ -9,7 +13,7 @@ extern float distance_scale;
 extern float radius_scale;
 CameraMode camera_mode = CAMERA_FREE;
 
-// --- UTILITÁRIOS ---
+// --- Interpolação e spline ---
 
 float lerp(float a, float b, float t) {
     return a + (b - a) * t;
@@ -34,7 +38,7 @@ Position catmull_rom(Position p0, Position p1, Position p2, Position p3, float t
     return res;
 }
 
-// --- LÓGICA PRINCIPAL ---
+// --- Atualização por frame (chamada desde main.c / temporizador) ---
 
 void update_camera(float delta_time) {
     if (camera_mode == CAMERA_FREE) return;

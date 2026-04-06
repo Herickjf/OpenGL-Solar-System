@@ -20,6 +20,8 @@
   THE SOFTWARE.
 */
 
+/* Biblioteca de terceiros (cJSON). Manter alterações mínimas; preferir atualizar a partir do upstream. */
+
 /* cJSON */
 /* JSON parser in C. */
 

@@ -1,3 +1,4 @@
+/* Declarações extern do estado global: escalas, tempo, câmera, foco, HUD e música. */
 #ifndef APP_STATE_H
 #define APP_STATE_H
 
