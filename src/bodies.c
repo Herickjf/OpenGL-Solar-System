@@ -19,7 +19,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#define BUMP_ACTIVE 1
+// #define BUMP_ACTIVE 1
 
 Stars stars; 
 GLfloat scene_ambient[4] = {0.05f, 0.05f, 0.08f, 1.0f};
@@ -27,6 +27,8 @@ GLfloat scene_shininess = 32.0f;
 
 // ID global para o shader program que gerencia normal mapping nas esferas
 static GLuint sphere_shader_program = 0;
+
+int bump_mapping_enabled = 1;
 
 // ==========================================
 // Fontes dos Shaders de Normal Mapping (Bump Mapping)
@@ -246,7 +248,7 @@ GLuint loadTexture(const char *filename) {
     int width, height, nrChannels;
 
     if (!filename || strlen(filename) == 0) {
-        printf("Texture inválida\n");
+        // printf("Texture inválida\n");
         return 0;
     }
 
@@ -624,6 +626,9 @@ void draw_orbit(Body* body) {
  * @param z Posição Z.
  * @param body_spin Rotação do corpo em torno do próprio eixo.
  */
+/**
+ * @brief Desenha uma esfera com nível de detalhe (LOD) e suporte dinâmico a normal mapping.
+ */
 void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x, float y, float z, float body_spin) {
     // 1. Cálculo dinâmico de LOD (Level of Detail)
     float dx = cam.lookFrom.x - x;
@@ -641,19 +646,16 @@ void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x,
 
     glPushMatrix();
     
-    // NOTA: O glTranslatef(x, y, z) deve ser feito ANTES desta função no draw.c
-    // para seguir a hierarquia de órbitas corretamente. 
-    // Aqui tratamos apenas da rotação local do corpo.
+    // Rotação local do corpo
     glRotatef(body_spin, 0.0f, 1.0f, 0.0f);
     glRotatef(-90.0f, 1.0f, 0.0f, 0.0f); // Alinha o polo da esfera com o eixo Y
 
     int useShader = 0;
-#if BUMP_ACTIVE
-    // Só ativa o shader se houver um programa válido e uma textura de normal
-    if (sphere_shader_program != 0 && normal_tex_id > 0) {
+
+    // Verificação da variável dinâmica em vez de constante fixa
+    if (bump_mapping_enabled && sphere_shader_program != 0 && normal_tex_id > 0) {
         useShader = 1;
     }
-#endif
 
     if (useShader) {
         glUseProgram(sphere_shader_program);
@@ -677,7 +679,6 @@ void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x,
         
         if (tex_id > 0) {
             glBindTexture(GL_TEXTURE_2D, tex_id);
-            // Garante que a cor do material interaja com a textura
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
@@ -685,10 +686,10 @@ void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x,
         }
     }
 
-    // Desenha a geometria da esfera
+    // Desenha a geometria da esfera com o LOD calculado
     gluSphere(quad, radius, slices, slices);
 
-    // Limpeza de estado do OpenGL
+    // Limpeza de estado do OpenGL para evitar efeitos colaterais em outros objetos
     if (useShader) {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, 0);

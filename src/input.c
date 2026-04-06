@@ -201,6 +201,10 @@ void keyboard(unsigned char key, int x, int y) {
             cam.lookFrom.z -= up.z * current_speed;
             update_camera();
             break;
+        case 'b':
+        case 'B':
+            bump_mapping_enabled = !bump_mapping_enabled;
+            break;
         case ' ':
             cam.lookFrom.x += up.x * current_speed;
             cam.lookFrom.y += up.y * current_speed;

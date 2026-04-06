@@ -21,7 +21,7 @@ char* read_file(const char* path) {
 
     // encontra final
     fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
+    size_t sz = ftell(f);
     rewind(f);
 
     // aloca espaço pro buffer (+1 para o \0)

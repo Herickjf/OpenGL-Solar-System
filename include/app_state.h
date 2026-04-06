@@ -33,4 +33,7 @@
     // música
     extern int pause_music;
     
+    // bump
+    extern int bump_mapping_enabled;
+
 #endif

@@ -191,15 +191,16 @@ void draw_hud(Body* bodies, int count) {
 
     if(pause_music) {
         glColor4f(1.0f, 0.5f, 0.5f, 1.0f);
-        draw_text(PADDING, 120, "Radio OFF", GLUT_BITMAP_9_BY_15);
+        draw_text(PADDING, 140, "Radio OFF", GLUT_BITMAP_9_BY_15);
     } else {
         glColor4f(0.5f, 1.0f, 0.5f, 1.0f);
-        draw_text(PADDING, 120, "Radio ON", GLUT_BITMAP_9_BY_15);
+        draw_text(PADDING, 140, "Radio ON", GLUT_BITMAP_9_BY_15);
     }
     
     // 4. Rodapé com Dicas (Tamanho 15)
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-    draw_text(PADDING, 100, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 120, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);
+    draw_text(PADDING, 100, "Press 'B' to toggle bump mapping", GLUT_BITMAP_9_BY_15);
     draw_text(PADDING, 80, "Press 'P' to pause simulation", GLUT_BITMAP_9_BY_15);
     draw_text(PADDING, 60, "Press 'R' to reset time scale", GLUT_BITMAP_9_BY_15);
     draw_text(PADDING, 40, "Press 'M' to toggle music reproduction status", GLUT_BITMAP_9_BY_15);
