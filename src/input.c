@@ -30,10 +30,11 @@ static float previous_time_scale = 32.0f;
 int is_paused = 0;
 
 
-// Opção: Inverter eixos do mouse (descomente se preferir)
-// #define INVERT_MOUSE_X
-// #define INVERT_MOUSE_Y
-
+/**
+ * @brief Normaliza um vetor de posição para que ele tenha comprimento unitário (1.0).
+ * @param v O vetor de posição a ser normalizado.
+ * @return O vetor normalizado. Retorna um vetor padrão para baixo caso o comprimento seja quase zero.
+ */
 static Position normalize(Position v) {
     float len = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
     if (len < 1e-6f) {
@@ -42,6 +43,13 @@ static Position normalize(Position v) {
     return (Position){v.x / len, v.y / len, v.z / len};
 }
 
+/**
+ * @brief Calcula o produto vetorial entre dois vetores.
+ * Útil para encontrar um vetor perpendicular a dois outros (como o eixo "Right" da câmera).
+ * @param a O primeiro vetor.
+ * @param b O segundo vetor.
+ * @return O vetor resultante do produto vetorial (perpendicular a a e b).
+ */
 static Position cross(Position a, Position b) {
     return (Position){
         a.y * b.z - a.z * b.y,
@@ -50,6 +58,11 @@ static Position cross(Position a, Position b) {
     };
 }
 
+/**
+ * @brief Calcula o vetor de direção frontal ("Forward") com base nos ângulos atuais de Pitch e Yaw.
+ * @param void
+ * @return Um vetor de posição unitário apontando para onde a câmera está olhando.
+ */
 static Position get_forward_vector(void) {
     Position forward = {
         cosf(cam_pitch) * sinf(cam_yaw),
@@ -59,6 +72,11 @@ static Position get_forward_vector(void) {
     return normalize(forward);
 }
 
+/**
+ * @brief Calcula o vetor lateral ("Right") da câmera com base no vetor frontal e no vetor "Up".
+ * @param forward O vetor de direção para onde a câmera aponta.
+ * @return Um vetor de posição unitário apontando para a direita relativa da câmera.
+ */
 static Position get_right_vector(Position forward) {
     Position right = cross(forward, cam.vUp);
     float len = sqrtf(right.x * right.x + right.y * right.y + right.z * right.z);
@@ -68,11 +86,20 @@ static Position get_right_vector(Position forward) {
     return (Position){right.x / len, right.y / len, right.z / len};
 }
 
+/**
+ * @brief Retorna o vetor de orientação vertical ("Up") da câmera devidamente normalizado.
+ * @param void
+ * @return O vetor unitário que define o "topo" da câmera.
+ */
 static Position get_up_vector(void) {
     return normalize(cam.vUp);
 }
 
-// Recalcula o lookAt com base na posição atual e na direção do olhar
+/**
+ * @brief Atualiza o ponto de foco da câmera (lookAt) baseado na posição atual e na direção do olhar.
+ * Aplica limites ao ângulo Pitch para evitar que a câmera inverta verticalmente (Gimbal Lock).
+ * @param void
+ */
 void update_camera() {
     const float pitch_limit = 89.9f * (float)M_PI / 180.0f;
     Position forward;
@@ -86,6 +113,11 @@ void update_camera() {
     cam.lookAt.z = cam.lookFrom.z + forward.z * look_distance;
 }
 
+/**
+ * @brief Inicializa os ângulos Yaw e Pitch da câmera com base nos vetores lookFrom e lookAt atuais.
+ * Sincroniza a orientação interna do controlador com o estado inicial da câmera.
+ * @param void
+ */
 void init_camera_controller(void) {
     Position direction = {
         cam.lookAt.x - cam.lookFrom.x,
@@ -100,6 +132,13 @@ void init_camera_controller(void) {
     update_camera();
 }
 
+/**
+ * @brief Gerencia as entradas de teclado do usuário.
+ * Trata movimentação (WASD/QE/Espaço), escala de tempo (+/-/R), HUD (H), música (M), pausa (P) e saída (ESC).
+ * @param key O caractere da tecla pressionada.
+ * @param x Coordenada X do mouse no momento da pressão.
+ * @param y Coordenada Y do mouse no momento da pressão.
+ */
 void keyboard(unsigned char key, int x, int y) {
     Position forward, right, up;
     float current_speed = camera_speed;
@@ -216,8 +255,17 @@ void keyboard(unsigned char key, int x, int y) {
     glutPostRedisplay();
 }
 
+/**
+ * @brief Gerencia os cliques e o scroll do mouse.
+ * Trata o início/fim da rotação da câmera (clique esquerdo), cliques na interface HUD 
+ * e o zoom ou movimentação frontal através do scroll.
+ * @param button O botão do mouse acionado (ou roda de scroll).
+ * @param state O estado do botão (GLUT_DOWN ou GLUT_UP).
+ * @param x Coordenada X da tela.
+ * @param y Coordenada Y da tela.
+ */
 void mouse(int button, int state, int x, int y) {
-    Position forward, up, right;
+    Position forward;
     float current_scroll_speed = scroll_speed;
 
     int mod = glutGetModifiers();
@@ -268,9 +316,13 @@ void mouse(int button, int state, int x, int y) {
     }
 }
 
-// ============================================
-// MOVIMENTAÇÃO MELHORADA DO MOUSE
-// ============================================
+/**
+ * @brief Processa o movimento do mouse enquanto um botão está pressionado.
+ * Atualiza os ângulos Yaw e Pitch da câmera proporcionalmente ao deslocamento do cursor 
+ * para permitir o "olhar em volta" (Free Look).
+ * @param x Coordenada X atual do cursor.
+ * @param y Coordenada Y atual do cursor.
+ */
 void motion(int x, int y) {
     if (is_dragging) {
         int dx = x - last_mouse_x;
@@ -279,13 +331,9 @@ void motion(int x, int y) {
         last_mouse_x = x;
         last_mouse_y = y;
 
-        // ESTILO 1: "PUXAR" a cena (arrastar para esquerda = olhar para direita)
-        // Esse é o mais intuitivo para modelagem 3D e visualização
+        // (arrastar para esquerda = olhar para direita)
         cam_yaw += dx * mouse_sensitivity;      // Mouse esquerda (+) → Olha direita
         cam_pitch += dy * mouse_sensitivity;    // Mouse cima (+) → Olha baixo
-        
-        // Se quiser inverter o eixo Y (mouse cima = olha cima), use:
-        // cam_pitch -= dy * mouse_sensitivity;
         
         // Limita pitch para não virar de ponta-cabeça
         const float max_pitch = 89.9f * (float)M_PI / 180.0f;

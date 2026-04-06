@@ -40,6 +40,15 @@ static int screen_h;
 // UTILITÁRIOS DE DESENHO
 // ======================
 
+/**
+ * @brief Desenha um retângulo preenchido na tela com a cor especificada.
+ * Utilizada para compor o fundo do menu e os corpos dos botões.
+ * @param x Posição horizontal inicial (esquerda).
+ * @param y Posição vertical inicial (base).
+ * @param w Largura do retângulo.
+ * @param h Altura do retângulo.
+ * @param color Array de 4 floats contendo os valores RGBA.
+ */
 static void draw_rect(float x, float y, float w, float h, float color[4]) {
     glColor4fv(color);
     glBegin(GL_QUADS);
@@ -50,7 +59,13 @@ static void draw_rect(float x, float y, float w, float h, float color[4]) {
     glEnd();
 }
 
-// Função de texto atualizada para aceitar a fonte
+/**
+ * @brief Renderiza uma string de texto na tela usando fontes de bitmap do GLUT.
+ * @param x Posição horizontal do texto.
+ * @param y Posição vertical do texto.
+ * @param text Ponteiro para a string a ser exibida.
+ * @param font Identificador da fonte do GLUT (ex: GLUT_BITMAP_9_BY_15).
+ */
 static void draw_text(float x, float y, const char* text, void* font) {
     glRasterPos2f(x, y);
     for (const char* c = text; *c; c++) {
@@ -58,6 +73,16 @@ static void draw_text(float x, float y, const char* text, void* font) {
     }
 }
 
+/**
+ * @brief Desenha um botão estilizado com bordas e rótulo centralizado.
+ * Altera a cor de fundo caso o botão esteja no estado ativo.
+ * @param x Posição horizontal do botão.
+ * @param y Posição vertical do botão.
+ * @param w Largura do botão.
+ * @param h Altura do botão.
+ * @param label Texto a ser exibido dentro do botão.
+ * @param active Booleano (inteiro) indicando se o botão está selecionado.
+ */
 static void draw_modern_button(float x, float y, float w, float h, const char* label, int active) {
     if (active) glColor4f(0.2f, 0.5f, 0.9f, 1.0f);
     else glColor4fv(COLOR_BTN);
@@ -79,9 +104,12 @@ static void draw_modern_button(float x, float y, float w, float h, const char* l
     draw_text(x + (w/2) - (txt_w/2), y + (h/2) - 5, label, GLUT_BITMAP_9_BY_15);
 }
 
-// ======================
-// HUD ATUALIZADA
-// ======================
+/**
+ * @brief Renderiza a interface HUD completa, incluindo lista de corpos celestes e instruções.
+ * Configura uma projeção ortográfica 2D temporária para desenhar elementos de UI sobre a cena 3D.
+ * @param bodies Ponteiro para o array de corpos celestes (planetas).
+ * @param count Número total de corpos no array.
+ */
 void draw_hud(Body* bodies, int count) {
     if (!show_hud) return;
 
@@ -187,9 +215,13 @@ void draw_hud(Body* bodies, int count) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-// ======================
-// CLICK
-// ======================
+/**
+ * @brief Processa cliques do mouse na interface HUD.
+ * Verifica se as coordenadas do clique colidem com algum botão registrado e 
+ * atualiza o estado de foco e o modo de câmera conforme necessário.
+ * @param mouse_x Coordenada X do cursor do mouse.
+ * @param mouse_y Coordenada Y do cursor do mouse.
+ */
 void hud_click(int mouse_x, int mouse_y) {
     if (!show_hud) return;
 
@@ -245,11 +277,18 @@ void hud_click(int mouse_x, int mouse_y) {
     }
 }
 
-// ======================
+/**
+ * @brief Alterna a visibilidade da interface HUD (liga/desliga).
+ * @param void
+ */
 void toggle_hud() {
     show_hud = !show_hud;
 }
 
+/**
+ * @brief Inicializa o estado padrão do HUD.
+ * @param void
+ */
 void init_hud() {
     show_hud = 1;
 }

@@ -15,10 +15,24 @@ CameraMode camera_mode = CAMERA_FREE;
 
 // --- Interpolação e spline ---
 
+/**
+ * @brief Realiza uma interpolação linear simples (LERP) entre dois valores.
+ * @param a Valor inicial.
+ * @param b Valor final.
+ * @param t Fator de interpolação (geralmente entre 0.0 e 1.0).
+ * @return O valor interpolado entre a e b.
+ */
 float lerp(float a, float b, float t) {
     return a + (b - a) * t;
 }
 
+/**
+ * @brief Realiza a interpolação linear entre dois vetores de posição.
+ * @param a Posição inicial.
+ * @param b Posição final.
+ * @param t Fator de interpolação.
+ * @return Uma nova estrutura Position resultante da interpolação.
+ */
 Position lerp_pos(Position a, Position b, float t) {
     return (Position){
         lerp(a.x, b.x, t),
@@ -27,6 +41,16 @@ Position lerp_pos(Position a, Position b, float t) {
     };
 }
 
+/**
+ * @brief Calcula um ponto em uma spline de Catmull-Rom.
+ * Utilizada para criar trajetórias curvas suaves entre pontos de controle.
+ * @param p0 Ponto de controle anterior.
+ * @param p1 Ponto de controle atual (início do segmento).
+ * @param p2 Ponto de controle próximo (fim do segmento).
+ * @param p3 Ponto de controle seguinte.
+ * @param t Parâmetro de tempo local do segmento (0.0 a 1.0).
+ * @return A posição calculada sobre a curva.
+ */
 Position catmull_rom(Position p0, Position p1, Position p2, Position p3, float t) {
     float t2 = t * t;
     float t3 = t2 * t;
@@ -40,6 +64,12 @@ Position catmull_rom(Position p0, Position p1, Position p2, Position p3, float t
 
 // --- Atualização por frame (chamada desde main.c / temporizador) ---
 
+/**
+ * @brief Atualiza a posição e o foco da câmera com base no modo de operação (FOLLOW ou ORBIT).
+ * Calcula o alvo (planeta ou lua), define a distância ideal e aplica suavização (suavização por interpolação)
+ * na movimentação para garantir transições fluidas. No modo ORBIT, utiliza splines para circundar o alvo.
+ * @param delta_time Tempo decorrido desde o último frame (não utilizado diretamente nesta implementação).
+ */
 void update_camera(float delta_time) {
     if (camera_mode == CAMERA_FREE) return;
 
@@ -85,7 +115,7 @@ void update_camera(float delta_time) {
 
         Position raw_spline_pos = catmull_rom(p[i0], p[i1], p[i2], p[i3], local_t);
 
-        // --- CORREÇÃO ANTI-PULSAÇÃO (NORMALIZAÇÃO) ---
+        // --- ANTI-PULSAÇÃO (NORMALIZAÇÃO) ---
         float dx = raw_spline_pos.x - target.x;
         float dy = raw_spline_pos.y - target.y;
         float dz = raw_spline_pos.z - target.z;

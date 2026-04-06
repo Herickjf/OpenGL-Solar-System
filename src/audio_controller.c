@@ -25,8 +25,12 @@ static AudioState audio_state = STATE_STOPPED;
 
 int pause_music = 0;
 
-// ======================
-// Inicialização
+/**
+ * @brief Inicializa o subsistema de áudio da SDL2 e o SDL_mixer.
+ * Configura o dispositivo de áudio, define o tamanho do buffer para evitar stuttering 
+ * e estabelece o volume inicial da música.
+ * @param void
+ */
 void init_audio_controller() {
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
         printf("[Audio] Erro SDL: %s\n", SDL_GetError());
@@ -47,8 +51,12 @@ void init_audio_controller() {
     printf("[Audio] Sistema iniciado com Buffer de %d\n", AUDIO_BUFFER);
 }
 
-// ======================
-// Carregamento e Reprodução (Sem Fades)
+/**
+ * @brief Carrega e reproduz um arquivo de música (.mp3) baseado no nome do corpo celeste.
+ * Realiza o gerenciamento de memória liberando a música anterior antes de iniciar a nova
+ * e utiliza um fallback para um áudio padrão caso o arquivo específico não seja encontrado.
+ * @param name Ponteiro para a string contendo o nome do corpo celeste/arquivo.
+ */
 static void play_body_music(const char* name) {
     char full_path[256];
     snprintf(full_path, sizeof(full_path), "%s%s.mp3", AUDIO_PATH, name);
@@ -87,8 +95,12 @@ static void play_body_music(const char* name) {
     }
 }
 
-// ======================
-// Loop de Atualização
+/**
+ * @brief Gerencia a lógica de atualização do áudio em tempo real.
+ * Verifica qual corpo celeste está em foco, aplica uma proteção de debounce (anti-spam) 
+ * para trocas de faixas e interrompe a execução caso a música esteja pausada ou sem alvo.
+ * @param void
+ */
 void update_audio() {
     // Proteção: verifica se o mixer está ativo
     if (!Mix_QuerySpec(NULL, NULL, NULL)) return;
@@ -128,8 +140,12 @@ void update_audio() {
     }
 }
 
-// ======================
-// Encerramento
+/**
+ * @brief Finaliza o sistema de áudio e limpa os recursos da memória.
+ * Interrompe qualquer música em execução, libera o ponteiro da música atual 
+ * e fecha as bibliotecas SDL_mixer e o subsistema de áudio da SDL.
+ * @param void
+ */
 void close_audio() {
     Mix_HaltMusic();
 

@@ -69,9 +69,12 @@ const char* sphere_fragment_shader_source =
     "    gl_FragColor = vec4(ambient + diffuse + specular + gl_FrontMaterial.emission.rgb, diffuseColor.a);\n"
     "}";
 
-// =====================
-// Funções auxiliares (Compilação de Shader)
-// =====================
+/**
+ * @brief Compila um shader (vertex ou fragment) a partir do código fonte GLSL.
+ * @param type Tipo do shader (GL_VERTEX_SHADER ou GL_FRAGMENT_SHADER).
+ * @param source Código fonte do shader em string.
+ * @return ID do shader compilado ou 0 em caso de erro.
+ */
 static GLuint compile_shader(GLenum type, const char* source) {
     if (glCreateShader == NULL) {
         fprintf(stderr, "Erro: Funções de Shader não carregadas. Verifique o glewInit.\n");
@@ -94,6 +97,10 @@ static GLuint compile_shader(GLenum type, const char* source) {
     return shader;
 }
 
+/**
+ * @brief Cria e linka o programa de shader usado para normal mapping nas esferas.
+ * @return ID do programa de shader ou 0 em caso de falha.
+ */
 static GLuint create_sphere_shader_program() {
     GLuint vs = compile_shader(GL_VERTEX_SHADER, sphere_vertex_shader_source);
     GLuint fs = compile_shader(GL_FRAGMENT_SHADER, sphere_fragment_shader_source);
@@ -123,8 +130,12 @@ static GLuint create_sphere_shader_program() {
     return program;
 }
 
-// =====================
-// Funções auxiliares (JSON e materiais)
+/**
+ * @brief Obtém uma string de um objeto JSON.
+ * @param obj Objeto JSON de origem.
+ * @param key Chave a ser buscada.
+ * @return String duplicada (malloc) ou NULL se não existir.
+ */
 char* get_string(cJSON* obj, const char* key) {
     if (!obj) return NULL; // Proteção contra objetos nulos
     cJSON* item = cJSON_GetObjectItem(obj, key);
@@ -133,12 +144,22 @@ char* get_string(cJSON* obj, const char* key) {
        : NULL;
 }
 
+/**
+ * @brief Obtém um valor float de um objeto JSON.
+ * @param obj Objeto JSON de origem.
+ * @param key Chave a ser buscada.
+ * @return Valor float ou 0.0f se não existir.
+ */
 float get_float(cJSON* obj, const char* key) {
     if (!obj) return 0.0f; // Proteção
     cJSON* item = cJSON_GetObjectItem(obj, key);
     return item ? (float)item->valuedouble : 0.0f;
 }
 
+/**
+ * @brief Define valores padrão para um material.
+ * @param material Ponteiro para a struct Material a ser inicializada.
+ */
 static void set_default_material(Material* material) {
     material->diffuse[0] = 1.0f;
     material->diffuse[1] = 1.0f;
@@ -158,6 +179,12 @@ static void set_default_material(Material* material) {
     material->shininess = scene_shininess;
 }
 
+/**
+ * @brief Lê um array RGBA de um JSON e preenche um vetor de floats.
+ * @param obj Objeto JSON de origem.
+ * @param key Chave do array RGBA.
+ * @param out Vetor de saída com 4 componentes (RGBA).
+ */
 static void read_rgba_array(cJSON* obj, const char* key, GLfloat out[4]) {
     if (!obj) return; // Proteção
     cJSON* array = cJSON_GetObjectItem(obj, key);
@@ -175,6 +202,13 @@ static void read_rgba_array(cJSON* obj, const char* key, GLfloat out[4]) {
     }
 }
 
+/**
+ * @brief Converte um objeto JSON em uma struct Material.
+ * @param material_json Objeto JSON contendo os dados do material.
+ * @param type Tipo do corpo (ex: "star").
+ * @param name Nome do corpo.
+ * @return Estrutura Material preenchida.
+ */
 static Material parse_material(cJSON* material_json, const char* type, const char* name) {
     Material material;
     int has_emission = 0;
@@ -203,8 +237,11 @@ static Material parse_material(cJSON* material_json, const char* type, const cha
     return material;
 }
 
-// =====================
-// Texturas (carregamento OpenGL)
+/**
+ * @brief Carrega uma textura de arquivo para o OpenGL.
+ * @param filename Caminho do arquivo da textura.
+ * @return ID da textura gerada ou 0 em caso de erro.
+ */
 GLuint loadTexture(const char *filename) {
     int width, height, nrChannels;
 
@@ -248,6 +285,11 @@ GLuint loadTexture(const char *filename) {
     return texture;
 }
 
+/**
+ * @brief Carrega todas as texturas dos corpos, luas e anéis.
+ * @param bodies Vetor de corpos celestes.
+ * @param count Quantidade de corpos no vetor.
+ */
 void load_all_textures(Body* bodies, int count) {
     if(stars.texture_path)
         stars.texture_id = loadTexture(stars.texture_path);
@@ -282,8 +324,11 @@ void load_all_textures(Body* bodies, int count) {
     }
 }
 
-// =====================
-// Parse JSON -> structs (lua, anel, planeta)
+/**
+ * @brief Converte um JSON em uma struct Moon.
+ * @param moon_json Objeto JSON da lua.
+ * @return Estrutura Moon preenchida.
+ */
 Moon parse_moon(cJSON* moon_json) {
     Moon moon;
     
@@ -310,6 +355,11 @@ Moon parse_moon(cJSON* moon_json) {
     return moon;
 }
 
+/**
+ * @brief Converte um JSON em uma struct Rings.
+ * @param rings_json Objeto JSON dos anéis.
+ * @return Ponteiro para Rings alocado ou NULL.
+ */
 Rings* parse_rings(cJSON* rings_json) {
     if (!rings_json) return NULL;
 
@@ -324,6 +374,11 @@ Rings* parse_rings(cJSON* rings_json) {
     return rings;
 }
 
+/**
+ * @brief Converte um JSON em uma struct Body (planeta/estrela).
+ * @param body_json Objeto JSON do corpo celeste.
+ * @return Estrutura Body preenchida.
+ */
 Body parse_body(cJSON* body_json) {
     Body body;
     
@@ -378,8 +433,13 @@ Body parse_body(cJSON* body_json) {
     return body;
 }
 
-// =====================
-// Grafo da cena (orbit_center -> parent) e load_bodies
+/**
+ * @brief Busca um corpo pelo nome no vetor de corpos.
+ * @param bodies Vetor de corpos.
+ * @param count Quantidade de corpos.
+ * @param name Nome a ser buscado.
+ * @return Ponteiro para o Body encontrado ou NULL.
+ */
 Body* find_body_by_name(Body* bodies, int count, const char* name) {
     for (int i = 0; i < count; i++) {
         if (bodies[i].name && name && strcmp(bodies[i].name, name) == 0)
@@ -388,6 +448,11 @@ Body* find_body_by_name(Body* bodies, int count, const char* name) {
     return NULL;
 }
 
+/**
+ * @brief Resolve a hierarquia orbital definindo os pais (orbit_center).
+ * @param bodies Vetor de corpos.
+ * @param count Quantidade de corpos.
+ */
 void resolve_hierarchy(Body* bodies, int count) {
     for (int i = 0; i < count; i++) {
 
@@ -408,6 +473,10 @@ void resolve_hierarchy(Body* bodies, int count) {
     }
 }
 
+/**
+ * @brief Carrega configurações globais de escala e iluminação do JSON.
+ * @param root Objeto JSON raiz.
+ */
 void load_scale(cJSON* root) {
     cJSON* scale = cJSON_GetObjectItem(root, "scale");
     cJSON* lighting = cJSON_GetObjectItem(root, "lighting");
@@ -426,6 +495,12 @@ void load_scale(cJSON* root) {
     }
 }
 
+/**
+ * @brief Carrega todos os corpos celestes a partir de um arquivo JSON.
+ * @param path Caminho do arquivo JSON.
+ * @param out_count Ponteiro para armazenar a quantidade de corpos carregados.
+ * @return Vetor alocado de corpos.
+ */
 Body* load_bodies(const char* path, int* out_count) {
     char* json_data = read_file(path);
 
@@ -474,9 +549,9 @@ Body* load_bodies(const char* path, int* out_count) {
     return bodies;
 }
 
-// =====================
-// Desenho auxiliar: estrelas, órbitas, esfera LOD, anéis
-
+/**
+ * @brief Desenha a esfera de fundo com textura de estrelas.
+ */
 void draw_stars_background() {
     glPushMatrix();
 
@@ -501,6 +576,10 @@ void draw_stars_background() {
     glPopMatrix();
 }
 
+/**
+ * @brief Desenha a órbita elíptica de um corpo celeste.
+ * @param body Ponteiro para o corpo.
+ */
 void draw_orbit(Body* body) {
     if (!body || body->orbit_radius == 0) return; // Segurança contra body nulo
 
@@ -535,6 +614,16 @@ void draw_orbit(Body* body) {
     glEnable(GL_LIGHTING);
 }
 
+/**
+ * @brief Desenha uma esfera com nível de detalhe (LOD) e suporte a normal mapping.
+ * @param tex_id ID da textura difusa.
+ * @param normal_tex_id ID da textura de normal map.
+ * @param radius Raio da esfera.
+ * @param x Posição X.
+ * @param y Posição Y.
+ * @param z Posição Z.
+ * @param body_spin Rotação do corpo em torno do próprio eixo.
+ */
 void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x, float y, float z, float body_spin) {
     // 1. Cálculo dinâmico de LOD (Level of Detail)
     float dx = cam.lookFrom.x - x;
@@ -615,6 +704,11 @@ void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x,
     glPopMatrix();
 }
 
+/**
+ * @brief Desenha os anéis de um planeta com textura.
+ * @param rings Ponteiro para a struct Rings.
+ * @param planet_radius Raio do planeta base.
+ */
 void draw_rings(Rings* rings, float planet_radius) {
     if (!rings) return;
 

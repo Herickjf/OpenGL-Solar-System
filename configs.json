@@ -84,7 +84,7 @@
       "type": "planet",
       "texture": "./textures/earth/earth.jpg",
       "secondary_texture": "./textures/earth/city_lights.jpg",
-      "normal_texture": "./textures/earth/bump.jpg",
+      "normal_texture": "",
       "specular_texture": "./textures/earth/specular.jpg",
       "orbit_center": "Sun",
       "radius": 20.0,

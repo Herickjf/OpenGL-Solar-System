@@ -52,13 +52,11 @@ int last_time = 0;
 int show_hud = 1;
 GLUquadric *quad;
 
-/*
- * Callback do temporizador GLUT: coração da simulação.
- * - delta: segundos desde o último tick (relógio real).
- * - time_sim acumula o tempo da animação multiplicado por time_scale (pausa = 0, acelerar com +/−).
- * - update_camera(delta): apenas afeta modos FOLLOW/ORBIT (camera_controller.c).
- * - update_audio(): troca música conforme foco no HUD (SDL2_mixer).
- * - glutPostRedisplay é limitado por frame_duration_ms para não desenhar em excesso.
+/**
+ * @brief Callback do temporizador GLUT responsável por manter o ritmo da simulação.
+ * Calcula o tempo decorrido (delta), atualiza o tempo simulado acumulado, sincroniza
+ * a posição da câmera e o estado do áudio, e solicita o redesenho da tela respeitando o limite de FPS.
+ * @param value Valor inteiro passado pelo GLUT (não utilizado).
  */
 void update_timer(int value) {
     int current_time = glutGet(GLUT_ELAPSED_TIME);
@@ -77,7 +75,12 @@ void update_timer(int value) {
     glutTimerFunc(1, update_timer, 0);
 }
 
-/* Estado OpenGL “clássico”: suavização, material padrão, uma luz, teste de profundidade, quadric texturizado para esferas. */
+/**
+ * @brief Inicializa o estado global do OpenGL e as configurações de renderização.
+ * Define as propriedades de iluminação (Light0), materiais, ativa o teste de profundidade,
+ * sombreamento suave e prepara o objeto quadriculado usado para desenhar as esferas.
+ * @param void
+ */
 void init(void) {
     GLfloat mat_specular[] = {1,1,1,1};
     GLfloat mat_shininess[] = {50};
@@ -98,12 +101,11 @@ void init(void) {
     gluQuadricNormals(quad, GLU_SMOOTH);
 }
 
-/*
- * Um frame completo:
- * 1) Limpa buffers e posiciona a câmera com gluLookAt a partir de cam (globais).
- * 2) Luz pontual na origem (Sol no centro da cena).
- * 3) Desenha fundo, Sol, órbitas de todos os planetas, depois planetas (índice 1..n — 0 é o Sol).
- * 4) HUD em coordenadas de ecrã (desenhado dentro de draw_hud).
+/**
+ * @brief Callback de renderização principal (Display Function).
+ * Limpa os buffers, define a matriz de visualização com gluLookAt, posiciona a fonte de luz
+ * no Sol e desenha todos os elementos da cena (fundo, estrelas, órbitas, planetas e HUD).
+ * @param void
  */
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -134,7 +136,12 @@ void display(void) {
     glutSwapBuffers();
 }
 
-/* Atualiza viewport e matriz de projeção perspetiva quando a janela muda de tamanho. */
+/**
+ * @brief Ajusta a viewport e a matriz de projeção sempre que a janela é redimensionada.
+ * Recalcula a perspectiva para manter a proporção correta (aspect ratio) da imagem.
+ * @param w Nova largura da janela.
+ * @param h Nova altura da janela.
+ */
 void reshape(int w, int h) {
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
@@ -143,13 +150,13 @@ void reshape(int w, int h) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-/*
- * Sequência de arranque:
- * 1) Carga JSON e contagem de corpos (falha se vazio).
- * 2) GLUT: janela 800×600, double buffer, Z-buffer.
- * 3) GLEW após contexto criado.
- * 4) init OpenGL, HUD, orientação inicial da câmara (yaw/pitch), SDL áudio, texturas em GPU.
- * 5) Registo de timer + input + display e entrada no laço bloqueante glutMainLoop.
+/**
+ * @brief Ponto de entrada principal da aplicação.
+ * Configura o contexto GLUT, inicializa a biblioteca GLEW, carrega os dados do sistema
+ * solar via JSON, inicializa os controladores de áudio, câmera e HUD, e inicia o laço principal.
+ * @param argc Contador de argumentos de linha de comando.
+ * @param argv Vetor de strings dos argumentos de linha de comando.
+ * @return Inteiro indicando o status de saída do programa.
  */
 int main(int argc, char **argv) {
     

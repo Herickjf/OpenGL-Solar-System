@@ -8,6 +8,13 @@
 // =========================
 // Planetas
 
+/**
+ * @brief Calcula a posição 3D de um planeta em sua órbita elíptica.
+ * Utiliza a equação da cônica em coordenadas polares considerando o raio orbital, 
+ * excentricidade e inclinação para determinar as coordenadas (x, y, z) em função do tempo.
+ * @param body Ponteiro para a estrutura do corpo celeste (Body).
+ * @return Uma estrutura Position contendo as coordenadas X, Y e Z do planeta.
+ */
 Position get_position(Body* body) {
     // Sol fica parado
     if (body->orbit_radius == 0) {
@@ -39,6 +46,13 @@ Position get_position(Body* body) {
 // =========================
 // Luas (órbita relativa; posição absoluta combina-se com o planeta em draw/câmera)
 
+/**
+ * @brief Calcula a posição 3D relativa de uma lua em relação ao seu planeta pai.
+ * Segue o mesmo modelo matemático de órbita elíptica (Kepleriana simplificada) 
+ * aplicado aos planetas, utilizando os parâmetros específicos da lua.
+ * @param moon Ponteiro para a estrutura da lua (Moon).
+ * @return Uma estrutura Position contendo as coordenadas X, Y e Z relativas ao centro do planeta.
+ */
 Position get_moon_position(Moon* moon) {
     float angle = time_sim * (2.0f * M_PI / moon->orbital_period);
 

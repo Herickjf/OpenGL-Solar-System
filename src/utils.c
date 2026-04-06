@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include "utils.h"
 
+/**
+ * @brief Lê o conteúdo completo de um arquivo binário e o armazena em um buffer de memória.
+ * A função calcula o tamanho do arquivo, aloca a memória necessária e adiciona um caractere 
+ * nulo ('\0') ao final para garantir que o conteúdo possa ser tratado como uma string.
+ * @param path Caminho do sistema de arquivos para o arquivo a ser lido.
+ * @return Um ponteiro para o buffer alocado contendo os dados do arquivo, ou NULL em caso de erro.
+ */
 char* read_file(const char* path) {
     FILE* f = fopen(path, "rb");
     if(!f){

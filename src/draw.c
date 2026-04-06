@@ -8,34 +8,51 @@
 #include "draw.h"
 #include "bodies.h"
 
-// Atualizada a assinatura externa para incluir o ponteiro do Body
 extern void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x, float y, float z, float rotation);
 extern void draw_stars_background();
 extern void draw_rings(Rings *rings, float planet_radius);
 extern Position get_position(Body *body);
 extern Position get_moon_position(Moon *moon);
 
-// =========================
-// Fundo e utilitários locais
-
+/**
+*@brief Desenha o plano de fundo do cenário, tipicamente o campo de estrelas.
+*@param void
+*/
 void drawBackground() {
     draw_stars_background();
 }
 
-// ... (Funções auxiliares bindTextureSafe, clampf_local, normalize_position e rotações permanecem iguais)
-
+/**
+*@brief Restringe um valor de ponto flutuante dentro de um intervalo especificado.
+*@param value O valor a ser testado.
+*@param min_value O limite inferior.
+*@param max_value O limite superior.
+*@return O valor limitado entre min_value e max_value.
+*/
 static float clampf_local(float value, float min_value, float max_value) {
     if (value < min_value) return min_value;
     if (value > max_value) return max_value;
     return value;
 }
 
+/**
+*@brief Normaliza um vetor de posição para que ele tenha comprimento unitário.
+*@param v A posição (vetor) a ser normalizada.
+*@return Um novo vetor de posição com magnitude 1.0.
+*/
 static Position normalize_position(Position v) {
     float length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
     if (length < 1e-6f) return (Position){0.0f, 0.0f, 1.0f};
     return (Position){v.x / length, v.y / length, v.z / length};
 }
 
+
+/** 
+*@brief Rotaciona um vetor de posição em torno do eixo X.
+*@param v A posição original.
+*@param degrees O ângulo de rotação em graus.
+*@return A nova posição após a rotação.
+*/
 static Position rotate_x_position(Position v, float degrees) {
     float radians = degrees * (float)M_PI / 180.0f;
     float cosine = cosf(radians);
@@ -43,6 +60,12 @@ static Position rotate_x_position(Position v, float degrees) {
     return (Position){v.x, v.y * cosine - v.z * sine, v.y * sine + v.z * cosine};
 }
 
+/**
+*@brief Rotaciona um vetor de posição em torno do eixo Y.
+*@param v A posição original.
+*@param degrees O ângulo de rotação em graus.
+*@return A nova posição após a rotação.
+*/
 static Position rotate_y_position(Position v, float degrees) {
     float radians = degrees * (float)M_PI / 180.0f;
     float cosine = cosf(radians);
@@ -50,6 +73,11 @@ static Position rotate_y_position(Position v, float degrees) {
     return (Position){v.x * cosine + v.z * sine, v.y, -v.x * sine + v.z * cosine};
 }
 
+/**
+*@brief Aplica as propriedades de material (ambiente, difusa, especular, emissiva e brilho) ao contexto OpenGL.
+*@param material Ponteiro para a estrutura Material contendo os dados.
+*@param void
+*/
 static void apply_material(const Material* material) {
     GLfloat ambient[4] = {
         material->diffuse[0] * 0.2f,
@@ -64,8 +92,14 @@ static void apply_material(const Material* material) {
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material->shininess);
 }
 
-// ... (draw_sphere_mesh_with_night_overlay permanece igual para o overlay da Terra)
-
+/**
+*@brief Desenha uma malha esférica aplicando um efeito de mistura para simular luzes noturnas baseadas na direção da luz.
+*@param radius Raio da esfera.
+*@param slices Número de subdivisões ao longo do eixo Z (meridianos).
+*@param stacks Número de subdivisões em torno do eixo Z (paralelos).
+*@param light_dir_local Direção da luz em coordenadas locais.
+*@param night_strength Intensidade do efeito de textura noturna.
+*/
 static void draw_sphere_mesh_with_night_overlay(float radius, int slices, int stacks, Position light_dir_local, float night_strength) {
     float theta_step = 2.0f * (float)M_PI / (float)slices;
     float phi_step = (float)M_PI / (float)stacks;
@@ -95,6 +129,12 @@ static void draw_sphere_mesh_with_night_overlay(float radius, int slices, int st
     }
 }
 
+/**
+*@brief Gerencia e desenha a sobreposição de texturas noturnas especificamente para o planeta Terra.
+*@param planet Ponteiro para o corpo celeste (Terra).
+*@param pos Posição atual do planeta no mundo.
+*@param body_spin Rotação atual do corpo sobre seu eixo.
+*/
 static void draw_earth_night_overlay(Body *planet, Position pos, float body_spin) {
     if (!planet->secondary_texture_id) return;
     if (!planet->name || strcmp(planet->name, "Earth") != 0) return;
@@ -125,8 +165,11 @@ static void draw_earth_night_overlay(Body *planet, Position pos, float body_spin
     glPopMatrix();
 }
 
-// =========================
-
+/**
+*@brief Desenha uma camada adicional sobre o planeta para representar o brilho especular (reflexos de água/gelo).
+*@param planet Ponteiro para o corpo celeste.
+*@param body_spin Rotação atual do corpo sobre seu eixo.
+*/
 static void draw_specular_overlay(Body *planet, float body_spin) {
     if (!planet->specular_texture_id) return;
 
@@ -157,9 +200,10 @@ static void draw_specular_overlay(Body *planet, float body_spin) {
     glPopMatrix();
 }
 
-// =========================
-// SOL
-// =========================
+/**
+*@brief Renderiza o Sol no centro do sistema, aplicando seu material e rotação.
+*@param sun Ponteiro para o corpo celeste representando o Sol.
+*/
 void drawSun(Body *sun) {
     float sun_scale = 0.5f;
     apply_material(&sun->material);
@@ -174,9 +218,10 @@ void drawSun(Body *sun) {
     );
 }
 
-// =========================
-// LUA
-// =========================
+/**
+*@brief Renderiza uma lua em sua posição orbital relativa ao planeta pai.
+*@param moon Ponteiro para a estrutura da Lua.
+*/
 void drawMoon(Moon *moon) {
     Position pos = get_moon_position(moon);
 
@@ -185,7 +230,6 @@ void drawMoon(Moon *moon) {
         glTranslatef(pos.x, pos.y, pos.z);
         apply_material(&moon->material);
 
-        // CORREÇÃO: Passando os IDs de textura específicos da struct Moon
         draw_sphere_lod(
             moon->texture_id, 
             moon->normal_texture_id, 
@@ -196,9 +240,10 @@ void drawMoon(Moon *moon) {
     glPopMatrix();
 }
 
-// =========================
-// PLANETA
-// =========================
+/** 
+*@brief Renderiza um planeta completo, incluindo sua malha principal, anéis, luas e efeitos de textura (noite/especular).
+*@param planet Ponteiro para a estrutura do Planeta.
+*/
 void drawPlanet(Body *planet) {
     Position pos = get_position(planet);
     float body_spin = time_sim * (360.0f / planet->rotation_period);
