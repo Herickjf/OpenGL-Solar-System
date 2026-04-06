@@ -2,7 +2,7 @@
 
 **Trabalho final — Introdução à Computação Gráfica**  
 Disciplina ministrada pelo **Prof. Davi Henrique dos Santos**.  
-Alunos: Herick, Lusi, Rafael
+Alunos: Herick, Luis, Rafael
 
 ## Sumário
 
@@ -63,7 +63,7 @@ Este projeto implementa uma cena tridimensional navegável de um sistema solar e
 | **Transformações** | Translação e rotação dos corpos, inclinação orbital, rotação axial e hierarquia planeta–lua. |
 | **Câmera** | Modo livre (WASD, mouse, scroll); modo **seguir** com interpolação (`lerp`); modo **órbita** com posição ao longo de uma spline Catmull–Rom ao redor do alvo. |
 | **Iluminação** | Modelo de Phong via `glMaterial` (ambiente derivado do difuso, difuso, especular, brilho e emissão). |
-| **Texturas** | Mapeamento esférico; normais onde configuradas; textura secundária (noite na Terra, atmosfera em Vênus); anéis com textura dedicada. |
+| **Texturas** | Mapeamento esférico; normais onde configuradas; textura secundária (noite na Terra); anéis com textura dedicada. |
 | **Cena e tempo** | Temporizador GLUT; `time_sim` acumulado com `time_scale` para órbitas e rotações; limite de taxa de redesenho. |
 | **Splines** | Câmera em órbita segue uma spline Catmull–Rom para suavidade, com controle de distância ao alvo. |
 
