@@ -218,7 +218,7 @@
       "orbital_period": 10747,
       "rotation_period": 10.7,
       "material": {
-        "diffuse": [0.7, 0.7, 0.6, 0.8],
+        "diffuse": [0.7, 0.7, 0.6, 0.4],
         "specular": [0.2, 0.2, 0.2, 1.0],
         "emission": [0.0, 0.0, 0.0, 1.0],
         "shininess": 45.0

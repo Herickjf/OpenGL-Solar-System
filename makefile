@@ -20,7 +20,7 @@ INCLUDES = -Iinclude
 
 LIBS = -lGL -lGLU -lglut -lGLEW -lSDL2 -lSDL2_mixer
 
-CFLAGS = -Wall -O2
+CFLAGS = -g -Wall -O2
 
 # =========================
 # Regras principais

@@ -1,25 +1,140 @@
 /*
  * bodies.c — Leitura de configs.json (cJSON), texturas via stb_image e geometria auxiliar da cena:
  * fundo de estrelas, traço das órbitas, esfera com LOD e anéis planetários.
+ *
+ * Adicionado suporte a bump mapping (normal mapping) via Shader Program para planetas compatíveis.
  */
+
+#include <GL/glew.h>
+#include <GL/glut.h>
 #include "bodies.h"
 #include "../libs/stb_image.h"
 #include "utils.h"
 #include "calculus.h"
 #include "app_state.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+#define BUMP_ACTIVE 1
+
 Stars stars; 
 GLfloat scene_ambient[4] = {0.05f, 0.05f, 0.08f, 1.0f};
 GLfloat scene_shininess = 32.0f;
 
+// ID global para o shader program que gerencia normal mapping nas esferas
+static GLuint sphere_shader_program = 0;
+
+// ==========================================
+// Fontes dos Shaders de Normal Mapping (Bump Mapping)
+// ==========================================
+const char* sphere_vertex_shader_source =
+    "varying vec2 vTexCoord;\n"
+    "varying vec3 vLightDir;\n"
+    "varying vec3 vViewDir;\n"
+    "varying vec3 vNormal;\n"
+    "void main() {\n"
+    "    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
+    "    vTexCoord = gl_MultiTexCoord0.xy;\n"
+    "    vec4 viewSpacePos = gl_ModelViewMatrix * gl_Vertex;\n"
+    "    vLightDir = normalize(gl_LightSource[0].position.xyz - viewSpacePos.xyz);\n"
+    "    vViewDir = normalize(-viewSpacePos.xyz);\n"
+    "    vNormal = normalize(gl_NormalMatrix * gl_Normal);\n"
+    "}";
+
+const char* sphere_fragment_shader_source =
+    "varying vec2 vTexCoord;\n"
+    "varying vec3 vLightDir;\n"
+    "varying vec3 vViewDir;\n"
+    "varying vec3 vNormal;\n"
+    "uniform sampler2D uDiffuseTexture;\n"
+    "uniform sampler2D uNormalMap;\n"
+    "uniform bool uHasNormalMap;\n"
+    "void main() {\n"
+    "    vec3 finalNormal = vNormal;\n"
+    "    if (uHasNormalMap) {\n"
+    "        vec3 textureNormal = texture2D(uNormalMap, vTexCoord).xyz * 2.0 - 1.0;\n"
+    "        finalNormal = normalize(vNormal + textureNormal * 0.5);\n"
+    "    }\n"
+    "    vec4 diffuseColor = texture2D(uDiffuseTexture, vTexCoord);\n"
+    "    float lambertian = max(dot(finalNormal, vLightDir), 0.0);\n"
+    "    vec3 diffuse = lambertian * diffuseColor.rgb * gl_FrontMaterial.diffuse.rgb * gl_LightSource[0].diffuse.rgb;\n"
+    "    vec3 reflectDir = reflect(-vLightDir, finalNormal);\n"
+    "    float specularExp = max(dot(reflectDir, vViewDir), 0.0);\n"
+    "    vec3 specular = pow(specularExp, gl_FrontMaterial.shininess) * gl_FrontMaterial.specular.rgb * gl_LightSource[0].specular.rgb;\n"
+    "    vec3 ambient = gl_FrontMaterial.ambient.rgb * gl_LightSource[0].ambient.rgb + (diffuseColor.rgb * 0.1);\n"
+    "    gl_FragColor = vec4(ambient + diffuse + specular + gl_FrontMaterial.emission.rgb, diffuseColor.a);\n"
+    "}";
+
+// =====================
+// Funções auxiliares (Compilação de Shader)
+// =====================
+static GLuint compile_shader(GLenum type, const char* source) {
+    if (glCreateShader == NULL) {
+        fprintf(stderr, "Erro: Funções de Shader não carregadas. Verifique o glewInit.\n");
+        return 0;
+    }
+
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        printf("Erro ao compilar shader: %s\n", infoLog);
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+static GLuint create_sphere_shader_program() {
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, sphere_vertex_shader_source);
+    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, sphere_fragment_shader_source);
+
+    if (!vs || !fs) {
+        printf("Erro: Shaders não puderam ser criados.\n");
+        return 0;
+    }
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        printf("Erro ao linkar shader program: %s\n", infoLog);
+        glDeleteProgram(program);
+        program = 0;
+    }
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    return program;
+}
+
 // =====================
 // Funções auxiliares (JSON e materiais)
 char* get_string(cJSON* obj, const char* key) {
+    if (!obj) return NULL; // Proteção contra objetos nulos
     cJSON* item = cJSON_GetObjectItem(obj, key);
-    return (item && cJSON_IsString(item)) ? strdup(item->valuestring) : NULL;
+    return (item && cJSON_IsString(item) && item->valuestring)
+       ? strdup(item->valuestring)
+       : NULL;
 }
 
 float get_float(cJSON* obj, const char* key) {
+    if (!obj) return 0.0f; // Proteção
     cJSON* item = cJSON_GetObjectItem(obj, key);
     return item ? (float)item->valuedouble : 0.0f;
 }
@@ -44,6 +159,7 @@ static void set_default_material(Material* material) {
 }
 
 static void read_rgba_array(cJSON* obj, const char* key, GLfloat out[4]) {
+    if (!obj) return; // Proteção
     cJSON* array = cJSON_GetObjectItem(obj, key);
 
     if (!array || !cJSON_IsArray(array)) {
@@ -92,11 +208,16 @@ static Material parse_material(cJSON* material_json, const char* type, const cha
 GLuint loadTexture(const char *filename) {
     int width, height, nrChannels;
 
+    if (!filename || strlen(filename) == 0) {
+        printf("Texture inválida\n");
+        return 0;
+    }
+
     stbi_set_flip_vertically_on_load(1);
 
     unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
     if (!data) {
-        printf("Erro ao carregar textura: %s\n", filename);
+        // printf("Erro ao carregar textura: %s\n", filename);
         return 0;
     }
 
@@ -165,11 +286,17 @@ void load_all_textures(Body* bodies, int count) {
 // Parse JSON -> structs (lua, anel, planeta)
 Moon parse_moon(cJSON* moon_json) {
     Moon moon;
+    
+    // Inicializar IDs de textura para evitar crashes do OpenGL
+    moon.texture_id = 0;
+    moon.normal_texture_id = 0;
+    moon.secondary_texture_id = 0;
 
     moon.name = get_string(moon_json, "name");
     moon.texture_path = get_string(moon_json, "texture");
     moon.normal_texture_path = get_string(moon_json, "normal_texture");
     moon.secondary_texture_path = get_string(moon_json, "secondary_texture");
+
     moon.material = parse_material(cJSON_GetObjectItem(moon_json, "material"), NULL, moon.name);
 
     moon.radius = get_float(moon_json, "radius");
@@ -187,7 +314,9 @@ Rings* parse_rings(cJSON* rings_json) {
     if (!rings_json) return NULL;
 
     Rings* rings = (Rings *) malloc(sizeof(Rings));
-
+    if (!rings) return NULL; // Prevenção se a memória falhar
+    
+    rings->texture_id = 0; // Inicializar
     rings->texture_path = get_string(rings_json, "secondary_texture");
     rings->inner_radius = get_float(rings_json, "inner_radius");
     rings->outer_radius = get_float(rings_json, "outer_radius");
@@ -197,6 +326,12 @@ Rings* parse_rings(cJSON* rings_json) {
 
 Body parse_body(cJSON* body_json) {
     Body body;
+    
+    // Inicializar IDs em zero para que o OpenGL não leia lixo da memória
+    body.texture_id = 0;
+    body.secondary_texture_id = 0;
+    body.normal_texture_id = 0;
+    body.specular_texture_id = 0;
 
     body.name = get_string(body_json, "name");
     body.type = get_string(body_json, "type");
@@ -204,6 +339,8 @@ Body parse_body(cJSON* body_json) {
     body.texture_path = get_string(body_json, "texture");
     body.secondary_texture_path = get_string(body_json, "secondary_texture");
     body.normal_texture_path = get_string(body_json, "normal_texture");
+    body.specular_texture_path = get_string(body_json, "specular_texture");
+    
     body.material = parse_material(cJSON_GetObjectItem(body_json, "material"), body.type, body.name);
 
     body.orbit_center = get_string(body_json, "orbit_center");
@@ -223,10 +360,13 @@ Body parse_body(cJSON* body_json) {
 
     if (moons_json && cJSON_IsArray(moons_json)) {
         body.moons_count = cJSON_GetArraySize(moons_json);
-        body.moons = (Moon *) malloc(sizeof(Moon) * body.moons_count);
-
-        for (int i = 0; i < body.moons_count; i++) {
-            body.moons[i] = parse_moon(cJSON_GetArrayItem(moons_json, i));
+        if (body.moons_count > 0) {
+            body.moons = (Moon *) malloc(sizeof(Moon) * body.moons_count);
+            for (int i = 0; i < body.moons_count; i++) {
+                body.moons[i] = parse_moon(cJSON_GetArrayItem(moons_json, i));
+            }
+        } else {
+            body.moons = NULL;
         }
     } else {
         body.moons = NULL;
@@ -242,7 +382,7 @@ Body parse_body(cJSON* body_json) {
 // Grafo da cena (orbit_center -> parent) e load_bodies
 Body* find_body_by_name(Body* bodies, int count, const char* name) {
     for (int i = 0; i < count; i++) {
-        if (strcmp(bodies[i].name, name) == 0)
+        if (bodies[i].name && name && strcmp(bodies[i].name, name) == 0)
             return &bodies[i];
     }
     return NULL;
@@ -288,12 +428,21 @@ void load_scale(cJSON* root) {
 
 Body* load_bodies(const char* path, int* out_count) {
     char* json_data = read_file(path);
+
+    if (!json_data) {
+        printf("Erro ao ler arquivo JSON\n");
+        exit(1);
+    }
+    
     cJSON* root = cJSON_Parse(json_data);
 
     if (!root) {
         printf("Erro: %s\n", cJSON_GetErrorPtr());
+        free(json_data); // Prevenir memory leak no caso de erro
         exit(1);
     }
+    
+    free(json_data); // json_data não é mais necessário após cJSON_Parse
 
     load_scale(root);
 
@@ -303,6 +452,11 @@ Body* load_bodies(const char* path, int* out_count) {
 
     cJSON* bodies_json = cJSON_GetObjectItem(root, "bodies");
 
+    if (!bodies_json || !cJSON_IsArray(bodies_json)) {
+        printf("Erro: 'bodies' inválido\n");
+        exit(1);
+    }
+
     int count = cJSON_GetArraySize(bodies_json);
     Body* bodies = (Body *) malloc(sizeof(Body) * count);
 
@@ -311,6 +465,10 @@ Body* load_bodies(const char* path, int* out_count) {
     }
 
     resolve_hierarchy(bodies, count);
+
+    // Inicializar o Shader Program para as esferas.
+    // Isso é feito uma vez durante o carregamento dos corpos.
+    sphere_shader_program = create_sphere_shader_program();
 
     *out_count = count;
     return bodies;
@@ -344,7 +502,7 @@ void draw_stars_background() {
 }
 
 void draw_orbit(Body* body) {
-    if (body->orbit_radius == 0) return;
+    if (!body || body->orbit_radius == 0) return; // Segurança contra body nulo
 
     int segments = 150;
     float a = body->orbit_radius * distance_scale;
@@ -377,24 +535,82 @@ void draw_orbit(Body* body) {
     glEnable(GL_LIGHTING);
 }
 
-void draw_sphere_lod(float radius, float x, float y, float z, float body_spin) {
+void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x, float y, float z, float body_spin) {
+    // 1. Cálculo dinâmico de LOD (Level of Detail)
     float dx = cam.lookFrom.x - x;
     float dy = cam.lookFrom.y - y;
     float dz = cam.lookFrom.z - z;
-
-    float distance = sqrt(dx*dx + dy*dy + dz*dz);
+    float distance = sqrt(dx * dx + dy * dy + dz * dz);
+    
+    // Proteção para não dividir por zero ou valores muito pequenos
     if (distance < 1.0f) distance = 1.0f;
 
+    // Define a resolução da esfera com base na distância
     int slices = (int)(1000 * radius / distance);
-
-    if (slices < 10) slices = 10;
+    if (slices < 12) slices = 12;
     if (slices > 100) slices = 100;
 
     glPushMatrix();
-    glRotatef(body_spin, 0,1,0);
-    glRotatef(-90, 1,0,0);
+    
+    // NOTA: O glTranslatef(x, y, z) deve ser feito ANTES desta função no draw.c
+    // para seguir a hierarquia de órbitas corretamente. 
+    // Aqui tratamos apenas da rotação local do corpo.
+    glRotatef(body_spin, 0.0f, 1.0f, 0.0f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f); // Alinha o polo da esfera com o eixo Y
 
+    int useShader = 0;
+#if BUMP_ACTIVE
+    // Só ativa o shader se houver um programa válido e uma textura de normal
+    if (sphere_shader_program != 0 && normal_tex_id > 0) {
+        useShader = 1;
+    }
+#endif
+
+    if (useShader) {
+        glUseProgram(sphere_shader_program);
+
+        // Unidade de Textura 0: Difusa
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex_id);
+        glUniform1i(glGetUniformLocation(sphere_shader_program, "uDiffuseTexture"), 0);
+
+        // Unidade de Textura 1: Normal Map (Bump)
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, normal_tex_id);
+        glUniform1i(glGetUniformLocation(sphere_shader_program, "uNormalMap"), 1);
+
+        glUniform1i(glGetUniformLocation(sphere_shader_program, "uHasNormalMap"), 1);
+    } else {
+        // Fallback para o Pipeline de Função Fixa (FFP)
+        glUseProgram(0);
+        glActiveTexture(GL_TEXTURE0);
+        glEnable(GL_TEXTURE_2D);
+        
+        if (tex_id > 0) {
+            glBindTexture(GL_TEXTURE_2D, tex_id);
+            // Garante que a cor do material interaja com a textura
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
+        }
+    }
+
+    // Desenha a geometria da esfera
     gluSphere(quad, radius, slices, slices);
+
+    // Limpeza de estado do OpenGL
+    if (useShader) {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glUseProgram(0);
+    } else {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_2D);
+    }
 
     glPopMatrix();
 }

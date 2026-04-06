@@ -152,16 +152,16 @@ void reshape(int w, int h) {
  * 5) Registo de timer + input + display e entrada no laço bloqueante glutMainLoop.
  */
 int main(int argc, char **argv) {
-    bodies = load_bodies("configs.json", &body_count);
-    if (body_count == 0) exit(1);
-
+    
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
     glutCreateWindow("Solar System");
-
+    
     glewInit();
     last_time = glutGet(GLUT_ELAPSED_TIME);
+    bodies = load_bodies("configs.json", &body_count);
+    if (body_count == 0) exit(1);
 
     init();
     init_hud();

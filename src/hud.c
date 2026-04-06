@@ -151,21 +151,24 @@ void draw_hud(Body* bodies, int count) {
 
             // Botões Lua
             int is_m_foc_active = (focused_moon == m && camera_mode == CAMERA_FOLLOW);
-            int is_m_path_active = (focused_moon == m && camera_mode == CAMERA_ORBIT);
 
             draw_modern_button(btn_x, curr_y, bw, bh, "FOCUS", is_m_foc_active);
             if (ui_count < MAX_UI_ITEMS) 
                 ui_items[ui_count++] = (UIItem){btn_x, curr_y, bw, bh, NULL, m, b, CAMERA_FOLLOW};
-
-            // draw_modern_button(btn_x + bw + 5, curr_y, bw, bh, "PATH", is_m_path_active);
-            // if(ui_count < MAX_UI_ITEMS) 
-            //     ui_items[ui_count++] = (UIItem){btn_x + bw + 5, curr_y, bw, bh, NULL, m, b, CAMERA_ORBIT};
 
             curr_y -= ROW_HEIGHT;
         }
         curr_y -= 10;
     }
 
+    if(pause_music) {
+        glColor4f(1.0f, 0.5f, 0.5f, 1.0f);
+        draw_text(PADDING, 120, "Radio OFF", GLUT_BITMAP_9_BY_15);
+    } else {
+        glColor4f(0.5f, 1.0f, 0.5f, 1.0f);
+        draw_text(PADDING, 120, "Radio ON", GLUT_BITMAP_9_BY_15);
+    }
+    
     // 4. Rodapé com Dicas (Tamanho 15)
     glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
     draw_text(PADDING, 100, "Press 'H' to toggle menu visibility", GLUT_BITMAP_9_BY_15);

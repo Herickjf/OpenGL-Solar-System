@@ -44,7 +44,7 @@ Body* load_bodies(const char* path, int* out_count);
 // draw
 void draw_stars_background();
 void draw_orbit(Body* body);
-void draw_sphere_lod(float radius, float x, float y, float z, float body_spin);
+void draw_sphere_lod(GLuint tex_id, GLuint normal_tex_id, float radius, float x, float y, float z, float body_spin);
 void draw_rings(Rings* rings, float planet_radius);
 
 #endif
