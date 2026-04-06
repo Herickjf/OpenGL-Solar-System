@@ -65,6 +65,7 @@ Este projeto implementa uma cena tridimensional navegável de um sistema solar e
 | **Iluminação** | Modelo de Phong via `glMaterial` (ambiente derivado do difuso, difuso, especular, brilho e emissão). |
 | **Texturas** | Mapeamento esférico; normais onde configuradas; textura secundária (noite na Terra, atmosfera em Vênus); anéis com textura dedicada. |
 | **Cena e tempo** | Temporizador GLUT; `time_sim` acumulado com `time_scale` para órbitas e rotações; limite de taxa de redesenho. |
+| **Splines** | Câmera em órbita segue uma spline Catmull–Rom para suavidade, com controle de distância ao alvo. |
 
 ---
 
@@ -72,9 +73,7 @@ Este projeto implementa uma cena tridimensional navegável de um sistema solar e
 
 As posições orbitais são calculadas em `src/calculus.c` a partir de uma **elipse** no plano XZ, com **excentricidade** e **inclinação** vindas do JSON. O raio instantâneo:
 
-\[
-r = \frac{a\,(1 - e^2)}{1 + e\cos\theta}
-\]
+<img src="https://latex.codecogs.com/png.image?\dpi{120}\bg_black\color{white}r=\frac{a(1-e^2)}{1+e\cos\theta}" />
 
 em que \(a\) é o semi-eixo (escalado por `distance_scale`) e \(e\) a excentricidade. **Não** há integração N-corpos: trata-se de um modelo **kepleriano simplificado** para visualização.
 
@@ -169,6 +168,13 @@ Execução (Linux/macOS):
 
 ```bash
 ./solarSystem
+```
+
+OU (para linux):
+
+```bash
+  make
+  make run
 ```
 
 ### Windows
